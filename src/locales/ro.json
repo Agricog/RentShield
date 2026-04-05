@@ -1,0 +1,162 @@
+{
+  "app": {
+    "name": "RentShield",
+    "tagline": "Protejează-ți Locuința"
+  },
+
+  "nav": {
+    "cases": "Cazuri",
+    "report": "Raportează",
+    "dashboard": "Panou principal"
+  },
+
+  "landing": {
+    "headline": "Proprietarul nu vrea să repare?",
+    "headline_cta": "Noi ne ocupăm legal.",
+    "description": "Fotografiază problema. Povestește despre ea. O scrisoare legală care citează legea locuințelor din Marea Britanie este trimisă proprietarului tău în 60 de secunde. În orice limbă. Pentru orice chiriaș.",
+    "step1_label": "Fotografiază defectul",
+    "step1_detail": "AI identifică problema și gravitatea",
+    "step2_label": "Descrie în orice limbă",
+    "step2_detail": "Transformare voce-text în 40+ limbi",
+    "step3_label": "Scrisoare legală trimisă instant",
+    "step3_detail": "Citând s.11 LTA 1985, HHSRS, Homes Act 2018",
+    "step4_label": "Termen de 14 zile monitorizat",
+    "step4_detail": "Escaladare automată la sănătate publică dacă este ignorat",
+    "cta_report": "Raportează o problemă — £4.99 per scrisoare",
+    "cta_dashboard": "Panou principal",
+    "evidence_note": "Dovezile tale îți aparțin. Descarcă oricând. Gratuit mereu.",
+    "trust_gdpr": "UK GDPR",
+    "trust_encrypted": "Criptat",
+    "trust_tracking": "Fără urmărire",
+    "trust_ico": "Înregistrat ICO"
+  },
+
+  "dashboard": {
+    "title": "Cazurile Tale",
+    "report_button": "Raportează",
+    "empty_title": "Niciun caz încă",
+    "empty_description": "Raportează o problemă de locuință și vom genera o scrisoare legală pentru proprietarul tău în 60 de secunde.",
+    "empty_cta": "Raportează o problemă",
+    "days_left": "{{count}} zile până la termen",
+    "days_left_one": "{{count}} zi până la termen",
+    "deadline_passed": "Termenul a expirat",
+    "severity": "Gravitate {{level}}/5"
+  },
+
+  "status": {
+    "draft": "Ciornă",
+    "sent": "Trimis",
+    "escalated": "Escaladat",
+    "resolved": "Rezolvat",
+    "letter_sent": "Scrisoare trimisă"
+  },
+
+  "defect": {
+    "damp": "Umezeală",
+    "mould": "Mucegai",
+    "leak": "Scurgere de apă",
+    "heating": "Defecțiune încălzire",
+    "electrics": "Problemă electrică",
+    "other": "Altele"
+  },
+
+  "report": {
+    "step_type_title": "Care este problema?",
+    "step_type_description": "Selectează tipul de defect din proprietatea ta.",
+
+    "step_photos_title": "Fotografiază problema",
+    "step_photos_description": "Fă până la {{max}} fotografii. Datele GPS sunt eliminate automat pentru confidențialitatea ta.",
+    "step_photos_add": "Adaugă foto",
+    "step_photos_count": "{{current}}/{{max}} fotografii · doar JPEG/PNG · max 10MB fiecare",
+    "step_photos_analysing": "Se analizează...",
+
+    "step_voice_title": "Descrie problema",
+    "step_voice_description": "Vorbește în orice limbă. Vom transcrie și traduce automat.",
+    "step_voice_tap_record": "Apasă pentru a înregistra",
+    "step_voice_recording": "Se înregistrează... apasă pentru a opri",
+    "step_voice_processing": "Se procesează...",
+    "step_voice_transcribed": "Transcris",
+    "step_voice_translation": "Traducere în engleză:",
+    "step_voice_no_speech": "Nu s-a detectat vorbire",
+    "step_voice_privacy": "Înregistrările vocale sunt șterse în termen de 1 oră de la procesare. Nu sunt stocate pe termen lung.",
+    "step_voice_skip": "Omite — înregistrarea vocală este opțională",
+
+    "step_review_title": "Verifică și trimite",
+    "step_review_description": "Verifică detaliile de mai jos. Scrisoarea ta legală va fi generată și trimisă după plată.",
+    "step_review_photos_count": "{{count}} fotografii atașate",
+    "step_review_photos_count_one": "{{count}} fotografie atașată",
+    "step_review_voice_included": "Notă vocală inclusă",
+    "step_review_ai_assessment": "Evaluare AI: {{category}} — Gravitate {{severity}}/5",
+    "step_review_landlord_email": "Adresa de email a proprietarului",
+    "step_review_landlord_placeholder": "proprietar@exemplu.com",
+    "step_review_landlord_note": "Folosit exclusiv pentru trimiterea scrisorii. Nu este partajat sau folosit în scopuri de marketing.",
+    "step_review_what_next": "Ce se întâmplă în continuare:",
+    "step_review_what_next_detail": "După plată, o scrisoare legală care citează s.11 Landlord and Tenant Act 1985, Housing Health and Safety Rating System (HHSRS) și Homes (Fitness for Human Habitation) Act 2018 va fi trimisă proprietarului tău cu dovezile atașate. Are 14 zile să răspundă. Dacă nu răspunde, vom pregăti o plângere pentru departamentul de sănătate publică al consiliului local.",
+    "step_review_disclaimer": "Aceasta nu constituie consiliere juridică. RentShield generează corespondență bazată pe legislația britanică privind locuințele. Pentru consiliere juridică specifică, consultați un avocat sau Citizens Advice.",
+
+    "continue": "Continuă",
+    "pay_send": "Plătește £4.99 și trimite scrisoarea",
+    "back": "Înapoi"
+  },
+
+  "case_detail": {
+    "hhsrs": "HHSRS:",
+    "days_until_deadline": "{{count}} zile până la termenul proprietarului",
+    "days_until_deadline_one": "{{count}} zi până la termenul proprietarului",
+    "deadline_passed": "Termenul a expirat",
+    "council_complaint_ready": "Plângerea la consiliu este gata — verifică și trimite",
+    "evidence_photos": "Fotografii dovezi",
+    "letters_sent": "Scrisori trimise",
+    "add_evidence": "Adaugă mai multe dovezi",
+    "download_pack": "Descarcă pachetul de dovezi (PDF)",
+    "mark_resolved": "Marchează ca rezolvat",
+    "not_found": "Cazul nu a fost găsit.",
+    "back_dashboard": "Înapoi la panou"
+  },
+
+  "letter_type": {
+    "initial_demand": "Cerere inițială",
+    "escalation": "Escaladare",
+    "council_complaint": "Plângere la consiliu"
+  },
+
+  "consent": {
+    "title": "Datele Tale, Controlul Tău",
+    "intro": "RentShield are nevoie de permisiunea ta pentru a procesa următoarele date pentru a genera și trimite scrisori legale în numele tău.",
+    "data_title": "Prelucrarea datelor personale",
+    "data_detail": "Colectăm emailul tău (criptat) și datele de contact ale proprietarului exclusiv pentru trimiterea corespondenței legale. Nu partajăm niciodată datele tale cu terți. Poți șterge contul și toate datele în orice moment.",
+    "voice_title": "Înregistrare vocală și transcriere",
+    "voice_detail": "Înregistrările vocale sunt procesate de Speechmatics (date rezidente în Marea Britanie) pentru a crea transcrieri text. Înregistrările sunt șterse în termen de 1 oră de la procesare și nu sunt stocate pe termen lung.",
+    "photo_title": "Dovezi foto și analiză AI",
+    "photo_detail": "Fotografiile sunt analizate de AI pentru clasificarea defectelor. Datele GPS sunt eliminate înainte de încărcare. Fotografiile sunt păstrate pe durata cazului plus 90 de zile și le poți șterge în orice moment.",
+    "privacy_link": "Politica de Confidențialitate",
+    "terms_link": "Termeni și Condiții",
+    "accept": "Sunt de acord — lasă-mă să raportez problema",
+    "submitting": "Se salvează...",
+    "withdraw": "Poți retrage consimțământul în orice moment ștergând contul din Setări."
+  },
+
+  "language": {
+    "select": "Limbă",
+    "en": "English",
+    "pl": "Polski",
+    "ro": "Română"
+  },
+
+  "errors": {
+    "something_wrong": "Ceva nu a funcționat",
+    "data_safe": "Datele tale sunt în siguranță. Această eroare a fost raportată automat.",
+    "refresh": "Reîmprospătează pagina",
+    "try_again": "Încearcă din nou",
+    "go_dashboard": "Panou principal"
+  },
+
+  "common": {
+    "loading": "Se încarcă...",
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "delete": "Șterge",
+    "download": "Descarcă",
+    "close": "Închide"
+  }
+}
