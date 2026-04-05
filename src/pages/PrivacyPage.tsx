@@ -1,13 +1,12 @@
-import { Shield } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 export function PrivacyPage() {
-
   return (
     <div className="min-h-dvh bg-surface">
       <header className="bg-navy px-6 py-4 flex items-center gap-2">
-        <Shield className="h-5 w-5 text-shield-mid" />
+        <FileText className="h-5 w-5 text-shield-mid" />
         <span className="font-bold text-base text-white tracking-tight">
-          Rent<span className="text-shield-mid">Shield</span>
+          Repair<span className="text-shield-mid">Letter</span>
         </span>
       </header>
 
@@ -17,8 +16,8 @@ export function PrivacyPage() {
 
         <div className="prose-sm text-slate leading-relaxed flex flex-col gap-6">
           <Section title="1. Who We Are">
-            <p>RentShield is operated by Autaimate ("we", "us", "our"), a UK-based business. We are registered with the Information Commissioner's Office (ICO). Our registered address is in Cornwall, United Kingdom.</p>
-            <p>For data protection enquiries, contact us at privacy@rentshield.co.uk.</p>
+            <p>RepairLetter is operated by Autaimate ("we", "us", "our"), a UK-based business. We are registered with the Information Commissioner's Office (ICO). Our registered address is in Cornwall, United Kingdom.</p>
+            <p>For data protection enquiries, contact us at privacy@repairletter.co.uk.</p>
           </Section>
 
           <Section title="2. What Data We Collect">
@@ -34,13 +33,13 @@ export function PrivacyPage() {
           </Section>
 
           <Section title="3. Legal Basis for Processing">
-            <p><strong>Contract performance (Article 6(1)(b)):</strong> Processing your data is necessary to provide the RentShield service — generating and sending legal letters on your behalf.</p>
+            <p><strong>Contract performance (Article 6(1)(b)):</strong> Processing your data is necessary to provide the RepairLetter service — generating and sending legal letters on your behalf.</p>
             <p><strong>Consent (Article 6(1)(a)):</strong> You provide explicit consent for voice recording and photo processing when you first use the service. You can withdraw consent at any time by deleting your account.</p>
             <p><strong>Legitimate interest (Article 6(1)(f)):</strong> We maintain audit logs and error tracking to ensure the security and reliability of the service.</p>
           </Section>
 
           <Section title="4. How We Use Your Data">
-            <p>We use your data exclusively to provide the RentShield service:</p>
+            <p>We use your data exclusively to provide the RepairLetter service:</p>
             <p>To generate legal letters citing UK housing law on your behalf. To send those letters to your landlord via email. To track response deadlines and generate escalation documents. To provide you with an evidence pack of all correspondence and photos. To translate correspondence into your preferred language.</p>
             <p>We do not use your data for marketing, advertising, profiling, or any purpose other than delivering the service you have requested.</p>
           </Section>
@@ -73,7 +72,7 @@ export function PrivacyPage() {
             <p><strong>Portability:</strong> Export your case data, evidence, and letters in a machine-readable format.</p>
             <p><strong>Restrict processing:</strong> Request that we limit how we use your data.</p>
             <p><strong>Withdraw consent:</strong> Withdraw consent for voice and photo processing at any time by deleting your account.</p>
-            <p>To exercise any of these rights, use the account settings in the app or email privacy@rentshield.co.uk. We will respond within 30 days.</p>
+            <p>To exercise any of these rights, use the account settings in the app or email privacy@repairletter.co.uk. We will respond within 30 days.</p>
           </Section>
 
           <Section title="8. Data Security">
@@ -81,11 +80,11 @@ export function PrivacyPage() {
           </Section>
 
           <Section title="9. Children">
-            <p>RentShield is not intended for use by anyone under 18. We do not knowingly collect data from children.</p>
+            <p>RepairLetter is not intended for use by anyone under 18. We do not knowingly collect data from children.</p>
           </Section>
 
           <Section title="10. Changes to This Policy">
-            <p>We may update this policy from time to time. We will notify you of material changes via the email address associated with your account. The latest version is always available at rentshield.co.uk/privacy.</p>
+            <p>We may update this policy from time to time. We will notify you of material changes via the email address associated with your account. The latest version is always available at repairletter.co.uk/privacy.</p>
           </Section>
 
           <Section title="11. Complaints">
