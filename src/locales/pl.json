@@ -1,0 +1,162 @@
+{
+  "app": {
+    "name": "RentShield",
+    "tagline": "Chroń Swój Dom"
+  },
+
+  "nav": {
+    "cases": "Sprawy",
+    "report": "Zgłoś",
+    "dashboard": "Panel główny"
+  },
+
+  "landing": {
+    "headline": "Właściciel nie chce naprawić?",
+    "headline_cta": "Zajmiemy się tym legalnie.",
+    "description": "Zrób zdjęcie problemu. Opowiedz o nim. List prawny powołujący się na brytyjskie prawo mieszkaniowe zostanie wysłany do Twojego właściciela w 60 sekund. W każdym języku. Dla każdego najemcy.",
+    "step1_label": "Zrób zdjęcie usterki",
+    "step1_detail": "AI rozpoznaje problem i jego powagę",
+    "step2_label": "Opisz w dowolnym języku",
+    "step2_detail": "Zamiana mowy na tekst w 40+ językach",
+    "step3_label": "List prawny wysłany natychmiast",
+    "step3_detail": "Powołując się na s.11 LTA 1985, HHSRS, Homes Act 2018",
+    "step4_label": "14-dniowy termin monitorowany",
+    "step4_detail": "Automatyczna eskalacja do sanepidu jeśli zignorowany",
+    "cta_report": "Zgłoś problem — £4.99 za list",
+    "cta_dashboard": "Panel główny",
+    "evidence_note": "Twoje dowody należą do Ciebie. Pobierz w każdej chwili. Zawsze za darmo.",
+    "trust_gdpr": "UK GDPR",
+    "trust_encrypted": "Szyfrowane",
+    "trust_tracking": "Bez śledzenia",
+    "trust_ico": "Rejestracja ICO"
+  },
+
+  "dashboard": {
+    "title": "Twoje Sprawy",
+    "report_button": "Zgłoś",
+    "empty_title": "Brak spraw",
+    "empty_description": "Zgłoś problem mieszkaniowy, a wygenerujemy list prawny do Twojego właściciela w 60 sekund.",
+    "empty_cta": "Zgłoś problem",
+    "days_left": "{{count}} dni do terminu",
+    "days_left_one": "{{count}} dzień do terminu",
+    "deadline_passed": "Termin minął",
+    "severity": "Powaga {{level}}/5"
+  },
+
+  "status": {
+    "draft": "Szkic",
+    "sent": "Wysłany",
+    "escalated": "Eskalowany",
+    "resolved": "Rozwiązany",
+    "letter_sent": "List wysłany"
+  },
+
+  "defect": {
+    "damp": "Wilgoć",
+    "mould": "Pleśń",
+    "leak": "Przeciek wody",
+    "heating": "Awaria ogrzewania",
+    "electrics": "Problem elektryczny",
+    "other": "Inne"
+  },
+
+  "report": {
+    "step_type_title": "Jaki jest problem?",
+    "step_type_description": "Wybierz rodzaj usterki w Twoim mieszkaniu.",
+
+    "step_photos_title": "Zrób zdjęcie problemu",
+    "step_photos_description": "Zrób do {{max}} zdjęć. Dane GPS są automatycznie usuwane dla Twojej prywatności.",
+    "step_photos_add": "Dodaj zdjęcie",
+    "step_photos_count": "{{current}}/{{max}} zdjęć · tylko JPEG/PNG · maks. 10MB każde",
+    "step_photos_analysing": "Analizowanie...",
+
+    "step_voice_title": "Opisz problem",
+    "step_voice_description": "Mów w dowolnym języku. Automatycznie przetłumaczymy i zapiszemy.",
+    "step_voice_tap_record": "Dotknij, aby nagrać",
+    "step_voice_recording": "Nagrywanie... dotknij, aby zatrzymać",
+    "step_voice_processing": "Przetwarzanie...",
+    "step_voice_transcribed": "Transkrypcja",
+    "step_voice_translation": "Tłumaczenie na angielski:",
+    "step_voice_no_speech": "Nie wykryto mowy",
+    "step_voice_privacy": "Nagrania głosowe są usuwane w ciągu 1 godziny od przetworzenia. Nigdy nie są przechowywane długoterminowo.",
+    "step_voice_skip": "Pomiń — nagranie głosowe jest opcjonalne",
+
+    "step_review_title": "Sprawdź i wyślij",
+    "step_review_description": "Sprawdź poniższe dane. Twój list prawny zostanie wygenerowany i wysłany po opłacie.",
+    "step_review_photos_count": "{{count}} zdjęć załączonych",
+    "step_review_photos_count_one": "{{count}} zdjęcie załączone",
+    "step_review_voice_included": "Notatka głosowa dołączona",
+    "step_review_ai_assessment": "Ocena AI: {{category}} — Powaga {{severity}}/5",
+    "step_review_landlord_email": "Adres email właściciela",
+    "step_review_landlord_placeholder": "wlasciciel@przyklad.com",
+    "step_review_landlord_note": "Używany wyłącznie do wysłania listu. Nigdy nie udostępniany ani nie wykorzystywany w celach marketingowych.",
+    "step_review_what_next": "Co się stanie dalej:",
+    "step_review_what_next_detail": "Po dokonaniu płatności list prawny powołujący się na s.11 Landlord and Tenant Act 1985, Housing Health and Safety Rating System (HHSRS) oraz Homes (Fitness for Human Habitation) Act 2018 zostanie wysłany do Twojego właściciela wraz z dowodami. Ma 14 dni na odpowiedź. Jeśli tego nie zrobi, przygotujemy skargę do wydziału zdrowia środowiskowego Twojej lokalnej rady.",
+    "step_review_disclaimer": "To nie jest porada prawna. RentShield generuje korespondencję na podstawie brytyjskiego prawa mieszkaniowego. W celu uzyskania konkretnych porad prawnych skonsultuj się z prawnikiem lub Citizens Advice.",
+
+    "continue": "Dalej",
+    "pay_send": "Zapłać £4.99 i wyślij list",
+    "back": "Wróć"
+  },
+
+  "case_detail": {
+    "hhsrs": "HHSRS:",
+    "days_until_deadline": "{{count}} dni do terminu właściciela",
+    "days_until_deadline_one": "{{count}} dzień do terminu właściciela",
+    "deadline_passed": "Termin minął",
+    "council_complaint_ready": "Skarga do rady gotowa — sprawdź i wyślij",
+    "evidence_photos": "Zdjęcia dowodowe",
+    "letters_sent": "Wysłane listy",
+    "add_evidence": "Dodaj więcej dowodów",
+    "download_pack": "Pobierz pakiet dowodów (PDF)",
+    "mark_resolved": "Oznacz jako rozwiązane",
+    "not_found": "Nie znaleziono sprawy.",
+    "back_dashboard": "Powrót do panelu"
+  },
+
+  "letter_type": {
+    "initial_demand": "Pierwsze wezwanie",
+    "escalation": "Eskalacja",
+    "council_complaint": "Skarga do rady"
+  },
+
+  "consent": {
+    "title": "Twoje Dane, Twoja Kontrola",
+    "intro": "RentShield potrzebuje Twojej zgody na przetwarzanie następujących danych w celu generowania i wysyłania listów prawnych w Twoim imieniu.",
+    "data_title": "Przetwarzanie danych osobowych",
+    "data_detail": "Zbieramy Twój email (zaszyfrowany) i dane kontaktowe właściciela wyłącznie w celu wysyłania korespondencji prawnej. Nigdy nie udostępniamy Twoich danych osobom trzecim. Możesz usunąć swoje konto i wszystkie dane w dowolnym momencie.",
+    "voice_title": "Nagrywanie i transkrypcja głosu",
+    "voice_detail": "Nagrania głosowe są przetwarzane przez Speechmatics (rezydencja danych w Wielkiej Brytanii) w celu tworzenia transkrypcji tekstowych. Nagrania są usuwane w ciągu 1 godziny od przetworzenia i nigdy nie są przechowywane długoterminowo.",
+    "photo_title": "Dowody fotograficzne i analiza AI",
+    "photo_detail": "Zdjęcia są analizowane przez AI w celu klasyfikacji usterek. Dane GPS są usuwane przed przesłaniem. Zdjęcia są przechowywane przez czas trwania sprawy plus 90 dni i możesz je usunąć w dowolnym momencie.",
+    "privacy_link": "Polityka Prywatności",
+    "terms_link": "Regulamin",
+    "accept": "Zgadzam się — pozwól mi zgłosić problem",
+    "submitting": "Zapisywanie...",
+    "withdraw": "Możesz wycofać zgodę w dowolnym momencie, usuwając swoje konto w Ustawieniach."
+  },
+
+  "language": {
+    "select": "Język",
+    "en": "English",
+    "pl": "Polski",
+    "ro": "Română"
+  },
+
+  "errors": {
+    "something_wrong": "Coś poszło nie tak",
+    "data_safe": "Twoje dane są bezpieczne. Ten błąd został automatycznie zgłoszony.",
+    "refresh": "Odśwież stronę",
+    "try_again": "Spróbuj ponownie",
+    "go_dashboard": "Panel główny"
+  },
+
+  "common": {
+    "loading": "Ładowanie...",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "delete": "Usuń",
+    "download": "Pobierz",
+    "close": "Zamknij"
+  }
+}
