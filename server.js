@@ -1,9 +1,11 @@
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+import { createServer } from 'node:http';
+import { createReadStream, existsSync, statSync } from 'node:fs';
+import { join, extname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const PORT = process.env.PORT || 3000;
-const DIST = path.join(__dirname, 'dist');
+const DIST = join(__dirname, 'dist');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -22,18 +24,17 @@ const MIME = {
   '.txt': 'text/plain',
 };
 
-http.createServer((req, res) => {
+createServer((req, res) => {
   const url = req.url.split('?')[0];
-  let filePath = path.join(DIST, url === '/' ? 'index.html' : url);
+  const filePath = join(DIST, url === '/' ? 'index.html' : url);
 
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    const ext = path.extname(filePath);
+  if (existsSync(filePath) && statSync(filePath).isFile()) {
+    const ext = extname(filePath);
     res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-    fs.createReadStream(filePath).pipe(res);
+    createReadStream(filePath).pipe(res);
   } else {
-    // SPA fallback — serve index.html for all unknown routes
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    fs.createReadStream(path.join(DIST, 'index.html')).pipe(res);
+    createReadStream(join(DIST, 'index.html')).pipe(res);
   }
 }).listen(PORT, '0.0.0.0', () => {
   console.log(`RepairLetter running on port ${PORT}`);
