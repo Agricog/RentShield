@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'RentShield — Protect Your Home',
-        short_name: 'RentShield',
-        description: 'Report housing problems. Get legal letters sent in 60 seconds.',
+        name: 'RepairLetter — Your Repair Letter. Your Rights.',
+        short_name: 'RepairLetter',
+        description: 'Send a legal repair letter to your landlord in 60 seconds. Any language. Any tenant.',
         theme_color: '#0F172A',
         background_color: '#F8FAFC',
         display: 'standalone',
@@ -52,7 +52,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/api\.rentshield\.co\.uk\/.*/i,
+            urlPattern: /^https:\/\/api\.repairletter\.co\.uk\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
