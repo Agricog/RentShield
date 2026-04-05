@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ClerkProvider } from '@clerk/clerk-react';
 import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { initSentry } from './lib/sentry';
 import { loadCachedLanguage } from './lib/dynamic-i18n';
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
@@ -15,7 +16,7 @@ import './index.css';
 // ── Sentry — initialise before anything else ────────────────
 initSentry();
 
-// ── Load cached dynamic language (if user previously selected one) ─
+// ── Load cached dynamic language ────────────────────────────
 loadCachedLanguage();
 
 // ── Validate required env vars ──────────────────────────────
@@ -32,11 +33,13 @@ if (!root) throw new Error('Root element not found');
 createRoot(root).render(
   <StrictMode>
     <ErrorBoundary>
-      <ClerkProvider publishableKey={CLERK_KEY}>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </ClerkProvider>
+      <HelmetProvider>
+        <ClerkProvider publishableKey={CLERK_KEY}>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ClerkProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   </StrictMode>
 );
