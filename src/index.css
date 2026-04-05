@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+
+  --color-navy: #0F172A;
+  --color-navy-mid: #1E293B;
+  --color-navy-light: #334155;
+  --color-slate: #64748B;
+  --color-slate-light: #94A3B8;
+  --color-border: #E2E8F0;
+  --color-surface: #F8FAFC;
+  --color-white: #FFFFFF;
+
+  --color-shield: #16A34A;
+  --color-shield-light: #DCFCE7;
+  --color-shield-mid: #4ADE80;
+  --color-shield-dark: #15803D;
+
+  --color-danger: #EF4444;
+  --color-danger-light: #FEE2E2;
+  --color-warning: #F59E0B;
+  --color-warning-light: #FEF3C7;
+  --color-info: #2563EB;
+  --color-info-light: #EEF2FF;
+}
+
+/* Status badge utilities */
+.status-draft {
+  @apply bg-slate-100 text-slate-600;
+}
+.status-sent {
+  @apply bg-info-light text-info;
+}
+.status-escalated {
+  @apply bg-warning-light text-warning;
+}
+.status-resolved {
+  @apply bg-shield-light text-shield-dark;
+}
+
+/* Focus ring — WCAG 2.1 AA compliant */
+*:focus-visible {
+  outline: 2px solid var(--color-shield);
+  outline-offset: 2px;
+}
+
+/* PWA standalone mode — respect device safe areas */
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
