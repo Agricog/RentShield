@@ -1,0 +1,162 @@
+{
+  "app": {
+    "name": "RentShield",
+    "tagline": "Protect Your Home"
+  },
+
+  "nav": {
+    "cases": "Cases",
+    "report": "Report",
+    "dashboard": "Go to dashboard"
+  },
+
+  "landing": {
+    "headline": "Your landlord won't fix it?",
+    "headline_cta": "We'll make it legal.",
+    "description": "Photo the problem. Speak about it. A legal letter citing UK housing law is sent to your landlord in 60 seconds. Any language. Any tenant.",
+    "step1_label": "Photo the defect",
+    "step1_detail": "AI identifies the issue and severity",
+    "step2_label": "Describe it in any language",
+    "step2_detail": "Voice-to-text in 40+ languages",
+    "step3_label": "Legal letter sent instantly",
+    "step3_detail": "Citing s.11 LTA 1985, HHSRS, Homes Act 2018",
+    "step4_label": "14-day deadline tracked",
+    "step4_detail": "Auto-escalation to environmental health if ignored",
+    "cta_report": "Report a problem — £4.99 per letter",
+    "cta_dashboard": "Go to dashboard",
+    "evidence_note": "Your evidence is yours. Download anytime. Free forever.",
+    "trust_gdpr": "UK GDPR",
+    "trust_encrypted": "Encrypted",
+    "trust_tracking": "No tracking",
+    "trust_ico": "ICO registered"
+  },
+
+  "dashboard": {
+    "title": "Your Cases",
+    "report_button": "Report",
+    "empty_title": "No cases yet",
+    "empty_description": "Report a housing problem and we'll generate a legal letter for your landlord in 60 seconds.",
+    "empty_cta": "Report a problem",
+    "days_left": "{{count}} days until deadline",
+    "days_left_one": "{{count}} day until deadline",
+    "deadline_passed": "Deadline passed",
+    "severity": "Severity {{level}}/5"
+  },
+
+  "status": {
+    "draft": "Draft",
+    "sent": "Sent",
+    "escalated": "Escalated",
+    "resolved": "Resolved",
+    "letter_sent": "Letter Sent"
+  },
+
+  "defect": {
+    "damp": "Damp",
+    "mould": "Mould",
+    "leak": "Water Leak",
+    "heating": "Heating Failure",
+    "electrics": "Electrical Issue",
+    "other": "Other"
+  },
+
+  "report": {
+    "step_type_title": "What's the problem?",
+    "step_type_description": "Select the type of defect in your property.",
+
+    "step_photos_title": "Photo the problem",
+    "step_photos_description": "Take up to {{max}} photos. GPS data is automatically removed for your privacy.",
+    "step_photos_add": "Add photo",
+    "step_photos_count": "{{current}}/{{max}} photos · JPEG/PNG only · Max 10MB each",
+    "step_photos_analysing": "Analysing...",
+
+    "step_voice_title": "Describe the problem",
+    "step_voice_description": "Speak in any language. We'll transcribe and translate automatically.",
+    "step_voice_tap_record": "Tap to record",
+    "step_voice_recording": "Recording... tap to stop",
+    "step_voice_processing": "Processing...",
+    "step_voice_transcribed": "Transcribed",
+    "step_voice_translation": "English translation:",
+    "step_voice_no_speech": "No speech detected",
+    "step_voice_privacy": "Voice recordings are deleted within 1 hour of processing. Never stored long-term.",
+    "step_voice_skip": "Skip — voice is optional",
+
+    "step_review_title": "Review & send",
+    "step_review_description": "Check the details below. Your legal letter will be generated and sent after payment.",
+    "step_review_photos_count": "{{count}} photos attached",
+    "step_review_photos_count_one": "{{count}} photo attached",
+    "step_review_voice_included": "Voice note included",
+    "step_review_ai_assessment": "AI assessment: {{category}} — Severity {{severity}}/5",
+    "step_review_landlord_email": "Landlord's email address",
+    "step_review_landlord_placeholder": "landlord@example.com",
+    "step_review_landlord_note": "Used only to send the letter. Never shared or marketed to.",
+    "step_review_what_next": "What happens next:",
+    "step_review_what_next_detail": "After payment, a legal letter citing s.11 Landlord and Tenant Act 1985, the Housing Health and Safety Rating System (HHSRS), and the Homes (Fitness for Human Habitation) Act 2018 will be sent to your landlord with your evidence attached. They have 14 days to respond. If they don't, we'll prepare an environmental health complaint for your local council.",
+    "step_review_disclaimer": "This is not legal advice. RentShield generates correspondence based on UK housing law. For specific legal guidance, consult a solicitor or Citizens Advice.",
+
+    "continue": "Continue",
+    "pay_send": "Pay £4.99 & Send Letter",
+    "back": "Go back"
+  },
+
+  "case_detail": {
+    "hhsrs": "HHSRS:",
+    "days_until_deadline": "{{count}} days until landlord deadline",
+    "days_until_deadline_one": "{{count}} day until landlord deadline",
+    "deadline_passed": "Deadline has passed",
+    "council_complaint_ready": "Council complaint ready — review and submit",
+    "evidence_photos": "Evidence Photos",
+    "letters_sent": "Letters Sent",
+    "add_evidence": "Add more evidence",
+    "download_pack": "Download evidence pack (PDF)",
+    "mark_resolved": "Mark as resolved",
+    "not_found": "Case not found.",
+    "back_dashboard": "Back to dashboard"
+  },
+
+  "letter_type": {
+    "initial_demand": "Initial Demand",
+    "escalation": "Escalation",
+    "council_complaint": "Council Complaint"
+  },
+
+  "consent": {
+    "title": "Your Data, Your Control",
+    "intro": "RentShield needs your permission to process the following data to generate and send legal letters on your behalf.",
+    "data_title": "Personal data processing",
+    "data_detail": "We collect your email (encrypted) and landlord contact details solely to send legal correspondence. We never share your data with third parties. You can delete your account and all data at any time.",
+    "voice_title": "Voice recording & transcription",
+    "voice_detail": "Voice recordings are processed by Speechmatics (UK data residency) to create text transcriptions. Recordings are deleted within 1 hour of processing and are never stored long-term.",
+    "photo_title": "Photo evidence & AI analysis",
+    "photo_detail": "Photos are analysed by AI to classify defects. GPS data is stripped before upload. Photos are retained for the duration of your case plus 90 days, and you can delete them at any time.",
+    "privacy_link": "Privacy Policy",
+    "terms_link": "Terms of Service",
+    "accept": "I agree — let me report my problem",
+    "submitting": "Saving...",
+    "withdraw": "You can withdraw consent at any time by deleting your account in Settings."
+  },
+
+  "language": {
+    "select": "Language",
+    "en": "English",
+    "pl": "Polski",
+    "ro": "Română"
+  },
+
+  "errors": {
+    "something_wrong": "Something went wrong",
+    "data_safe": "Your data is safe. This error has been reported automatically.",
+    "refresh": "Refresh page",
+    "try_again": "Try again",
+    "go_dashboard": "Go to dashboard"
+  },
+
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "download": "Download",
+    "close": "Close"
+  }
+}
