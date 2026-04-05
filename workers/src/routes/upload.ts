@@ -5,10 +5,10 @@ import { getDb, writeAuditLog } from '../lib/db';
 export const uploadRoutes = new Hono<{ Bindings: Env }>();
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'audio/webm'];
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+const MAX_AUDIO_SIZE = 25 * 1024 * 1024;
 
-// ── POST /api/upload-url — generate upload endpoint ─────────
+// ── POST /api/upload-url ────────────────────────────────────
 
 uploadRoutes.post('/upload-url', async (c) => {
   const body = await c.req.json<{ contentType: string; caseId?: string }>();
@@ -22,7 +22,6 @@ uploadRoutes.post('/upload-url', async (c) => {
     : body.contentType === 'image/png' ? 'png'
     : 'webm';
 
-  // User-scoped R2 key — enforced on download too
   const r2Key = `users/${userId}/evidence/${crypto.randomUUID()}.${ext}`;
   const expiresAt = new Date(Date.now() + 3600000).toISOString();
 
@@ -41,12 +40,12 @@ uploadRoutes.post('/upload-url', async (c) => {
 });
 
 // ── PUT /api/upload/:key — proxy upload to R2 ───────────────
+// Now computes SHA-256 hash of every file at upload time.
 
 uploadRoutes.put('/upload/:key{.+}', async (c) => {
   const r2Key = decodeURIComponent(c.req.param('key'));
   const userId = c.get('userId') as string;
 
-  // Security: key must belong to this user
   if (!r2Key.startsWith(`users/${userId}/`)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
@@ -56,7 +55,6 @@ uploadRoutes.put('/upload/:key{.+}', async (c) => {
     return c.json({ error: 'Invalid content type' }, 400);
   }
 
-  // Size limit based on type
   const maxSize = contentType.startsWith('audio/') ? MAX_AUDIO_SIZE : MAX_IMAGE_SIZE;
   const contentLength = parseInt(c.req.header('Content-Length') ?? '0', 10);
   if (contentLength > maxSize) {
@@ -65,15 +63,19 @@ uploadRoutes.put('/upload/:key{.+}', async (c) => {
 
   const body = await c.req.arrayBuffer();
 
-  // Double-check actual size against declared
   if (body.byteLength > maxSize) {
     return c.json({ error: 'File too large' }, 413);
   }
 
-  // Magic byte validation — prevents disguised files
   if (!validateMagicBytes(new Uint8Array(body), contentType)) {
     return c.json({ error: 'File content does not match declared type' }, 400);
   }
+
+  // ── Compute SHA-256 hash — evidence integrity proof ───────
+  const hashBuffer = await crypto.subtle.digest('SHA-256', body);
+  const sha256Hash = Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 
   // Upload to R2
   await c.env.EVIDENCE_BUCKET.put(r2Key, body, {
@@ -81,6 +83,7 @@ uploadRoutes.put('/upload/:key{.+}', async (c) => {
     customMetadata: {
       userId,
       uploadedAt: new Date().toISOString(),
+      sha256: sha256Hash,
     },
   });
 
@@ -89,18 +92,19 @@ uploadRoutes.put('/upload/:key{.+}', async (c) => {
     r2Key,
     contentType,
     size: body.byteLength,
+    sha256: sha256Hash,
   });
 
-  return c.json({ success: true, r2Key });
+  // Return hash so it can be stored in the evidence record
+  return c.json({ success: true, r2Key, sha256Hash });
 });
 
-// ── GET /api/evidence-url/:key — serve file via signed access ─
+// ── GET /api/evidence-url/:key ──────────────────────────────
 
 uploadRoutes.get('/evidence-url/:key{.+}', async (c) => {
   const r2Key = decodeURIComponent(c.req.param('key'));
   const userId = c.get('userId') as string;
 
-  // Security: only own files
   if (!r2Key.startsWith(`users/${userId}/`)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
@@ -120,26 +124,16 @@ uploadRoutes.get('/evidence-url/:key{.+}', async (c) => {
   });
 });
 
-/**
- * Validates magic bytes match the declared content type.
- * Prevents uploading executable or script files disguised as images.
- */
 function validateMagicBytes(bytes: Uint8Array, contentType: string): boolean {
   if (bytes.length < 4) return false;
 
   switch (contentType) {
     case 'image/jpeg':
-      // JPEG: FF D8 FF
       return bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
-
     case 'image/png':
-      // PNG: 89 50 4E 47
       return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
-
     case 'audio/webm':
-      // WebM/EBML: 1A 45 DF A3
       return bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3;
-
     default:
       return false;
   }
