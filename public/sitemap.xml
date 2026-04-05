@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.w3.org/1999/xhtml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <s:url>
+    <s:loc>https://repairletter.co.uk/</s:loc>
+    <s:lastmod>2026-04-05</s:lastmod>
+    <s:changefreq>weekly</s:changefreq>
+    <s:priority>1.0</s:priority>
+  </s:url>
+  <s:url>
+    <s:loc>https://repairletter.co.uk/privacy</s:loc>
+    <s:lastmod>2026-04-05</s:lastmod>
+    <s:changefreq>monthly</s:changefreq>
+    <s:priority>0.3</s:priority>
+  </s:url>
+  <s:url>
+    <s:loc>https://repairletter.co.uk/terms</s:loc>
+    <s:lastmod>2026-04-05</s:lastmod>
+    <s:changefreq>monthly</s:changefreq>
+    <s:priority>0.3</s:priority>
+  </s:url>
+</urlset>
