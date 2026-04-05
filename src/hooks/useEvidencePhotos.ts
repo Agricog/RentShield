@@ -64,7 +64,7 @@ export function useEvidencePhotos(evidence: Evidence[]) {
 
       setPhotos((prev) =>
         prev.map((p) => {
-          const result = results.find((r, i) => imageEvidence[i]?.id === p.evidence.id);
+          const result = results.find((_, i) => imageEvidence[i]?.id === p.evidence.id);
 
           if (!result) return p;
 
