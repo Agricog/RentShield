@@ -1,9 +1,12 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { UserButton } from '@clerk/clerk-react';
 import { Shield, LayoutDashboard, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '../ui/LanguageSelector';
 
 export function AppLayout() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-dvh bg-surface flex flex-col">
@@ -12,20 +15,23 @@ export function AppLayout() {
         <button
           onClick={() => navigate('/dashboard')}
           className="flex items-center gap-2"
-          aria-label="Go to dashboard"
+          aria-label={t('nav.dashboard')}
         >
           <Shield className="h-5 w-5 text-shield-mid" />
           <span className="font-bold text-base tracking-tight">
             Rent<span className="text-shield-mid">Shield</span>
           </span>
         </button>
-        <UserButton
-          appearance={{
-            elements: {
-              avatarBox: 'h-8 w-8',
-            },
-          }}
-        />
+        <div className="flex items-center gap-2">
+          <LanguageSelector />
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: 'h-8 w-8',
+              },
+            }}
+          />
+        </div>
       </header>
 
       {/* Main content */}
@@ -47,7 +53,7 @@ export function AppLayout() {
           }
         >
           <LayoutDashboard className="h-5 w-5" />
-          <span>Cases</span>
+          <span>{t('nav.cases')}</span>
         </NavLink>
         <NavLink
           to="/report"
@@ -58,7 +64,7 @@ export function AppLayout() {
           }
         >
           <AlertTriangle className="h-5 w-5" />
-          <span>Report</span>
+          <span>{t('nav.report')}</span>
         </NavLink>
       </nav>
     </div>
