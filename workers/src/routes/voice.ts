@@ -146,7 +146,7 @@ async function transcribeWithSpeechmatics(
     attempts++;
 
     const statusRes = await fetch(
-      `https://asr.api.speechmatics.com/v2/jobs/${jobId}`,
+      `https://asr.api.eu1.speechmatics.com/v2/jobs/${jobId}`,
       { headers: { Authorization: `Bearer ${apiKey}` } }
     );
 
@@ -158,7 +158,7 @@ async function transcribeWithSpeechmatics(
 
     if (statusData.job.status === 'done') {
       const transcriptRes = await fetch(
-        `https://asr.api.speechmatics.com/v2/jobs/${jobId}/transcript?format=json-v2`,
+        `https://asr.api.eu1.speechmatics.com/v2/jobs/${jobId}/transcript?format=json-v2`,
         { headers: { Authorization: `Bearer ${apiKey}` } }
       );
 
