@@ -71,12 +71,10 @@ voiceRoutes.post('/transcribe', async (c) => {
       );
     } catch (err) {
       console.error('Translation failed:', err);
-      // Non-fatal — we still have the original transcription
     }
   }
 
   // Mark audio for deletion — processed, no longer needed
-  // R2 lifecycle rules handle actual deletion
   await c.env.EVIDENCE_BUCKET.put(body.r2Key, audioBytes, {
     httpMetadata: { contentType: 'audio/webm' },
     customMetadata: {
@@ -98,6 +96,8 @@ voiceRoutes.post('/transcribe', async (c) => {
 });
 
 // ── Speechmatics Batch API ──────────────────────────────────
+
+const SPEECHMATICS_BASE = 'https://asr.api.speechmatics.com/v2';
 
 async function transcribeWithSpeechmatics(
   audioBytes: ArrayBuffer,
@@ -123,7 +123,7 @@ async function transcribeWithSpeechmatics(
   );
 
   // Submit job
-  const submitRes = await fetch('https://asr.api.eu1.speechmatics.com/v2/jobs', {
+  const submitRes = await fetch(`${SPEECHMATICS_BASE}/jobs`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}` },
     body: formData,
@@ -134,7 +134,7 @@ async function transcribeWithSpeechmatics(
     throw new Error(`Speechmatics submit failed: ${submitRes.status} ${errBody}`);
   }
 
-  const submitData = await submitRes.json() as { id: string };
+  const submitData = (await submitRes.json()) as { id: string };
   const jobId = submitData.id;
 
   // Poll for completion (max 30 seconds)
@@ -145,20 +145,19 @@ async function transcribeWithSpeechmatics(
     await new Promise((resolve) => setTimeout(resolve, 2000));
     attempts++;
 
-    const statusRes = await fetch(
-      `https://asr.api.eu1.speechmatics.com/v2/jobs/${jobId}`,
-      { headers: { Authorization: `Bearer ${apiKey}` } }
-    );
+    const statusRes = await fetch(`${SPEECHMATICS_BASE}/jobs/${jobId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
 
     if (!statusRes.ok) continue;
 
-    const statusData = await statusRes.json() as {
+    const statusData = (await statusRes.json()) as {
       job: { status: string };
     };
 
     if (statusData.job.status === 'done') {
       const transcriptRes = await fetch(
-        `https://asr.api.eu1.speechmatics.com/v2/jobs/${jobId}/transcript?format=json-v2`,
+        `${SPEECHMATICS_BASE}/jobs/${jobId}/transcript?format=json-v2`,
         { headers: { Authorization: `Bearer ${apiKey}` } }
       );
 
@@ -166,7 +165,7 @@ async function transcribeWithSpeechmatics(
         throw new Error('Failed to fetch transcript');
       }
 
-      const transcript = await transcriptRes.json() as {
+      const transcript = (await transcriptRes.json()) as {
         results: Array<{
           alternatives: Array<{ content: string; confidence: number }>;
         }>;
@@ -209,10 +208,8 @@ async function transcribeWithWhisper(
   audioBytes: ArrayBuffer,
   cfAiToken: string
 ): Promise<TranscriptionResult> {
-  // Cloudflare Workers AI — Whisper model
-  // Reuses CertVoice/InspectVoice pipeline pattern
   const res = await fetch(
-    'https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/openai/whisper',
+    'https://api.cloudflare.com/client/v4/accounts/d5f2a04b6d59db804400d72e297f7561/ai/run/@cf/openai/whisper',
     {
       method: 'POST',
       headers: {
@@ -224,10 +221,11 @@ async function transcribeWithWhisper(
   );
 
   if (!res.ok) {
-    throw new Error(`Whisper API failed: ${res.status}`);
+    const errBody = await res.text();
+    throw new Error(`Whisper API failed: ${res.status} ${errBody}`);
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     result: { text: string; language?: string };
   };
 
@@ -241,9 +239,6 @@ async function transcribeWithWhisper(
 }
 
 // ── Claude translation ──────────────────────────────────────
-// System prompt isolates instruction from user-supplied text.
-// Transcribed speech is passed as user content only — cannot override
-// the translation instruction even if the speaker says "ignore previous".
 
 async function translateToEnglish(
   text: string,
@@ -274,7 +269,7 @@ async function translateToEnglish(
     throw new Error(`Translation API failed: ${res.status}`);
   }
 
-  const data = await res.json() as {
+  const data = (await res.json()) as {
     content: Array<{ type: string; text?: string }>;
   };
 
