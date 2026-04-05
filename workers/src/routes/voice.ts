@@ -123,14 +123,15 @@ async function transcribeWithSpeechmatics(
   );
 
   // Submit job
-  const submitRes = await fetch('https://asr.api.speechmatics.com/v2/jobs', {
+  const submitRes = await fetch('https://asr.api.eu1.speechmatics.com/v2/jobs', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}` },
     body: formData,
   });
 
   if (!submitRes.ok) {
-    throw new Error(`Speechmatics submit failed: ${submitRes.status}`);
+    const errBody = await submitRes.text();
+    throw new Error(`Speechmatics submit failed: ${submitRes.status} ${errBody}`);
   }
 
   const submitData = await submitRes.json() as { id: string };
