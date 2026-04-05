@@ -1,6 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import * as Sentry from '@sentry/react';
-import { Shield, RefreshCw } from 'lucide-react';
+import { FileText, RefreshCw } from 'lucide-react';
 
 interface Props {
   children: ReactNode;
@@ -12,11 +12,6 @@ interface State {
   error: Error | null;
 }
 
-/**
- * Catches any unhandled error in the component tree.
- * Reports to Sentry. Shows a recovery UI instead of a white screen.
- * Critical for a legal evidence app — data must never appear lost.
- */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -28,7 +23,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Report to Sentry with component stack
     Sentry.captureException(error, {
       contexts: {
         react: {
@@ -36,7 +30,6 @@ export class ErrorBoundary extends Component<Props, State> {
         },
       },
     });
-
     console.error('ErrorBoundary caught:', error, errorInfo);
   }
 
@@ -58,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="min-h-dvh bg-surface flex items-center justify-center px-6">
           <div className="max-w-sm text-center">
             <div className="w-14 h-14 rounded-2xl bg-danger-light flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-7 w-7 text-danger" />
+              <FileText className="h-7 w-7 text-danger" />
             </div>
 
             <h1 className="text-lg font-bold text-navy mb-2">
