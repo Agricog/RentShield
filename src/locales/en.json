@@ -1,7 +1,7 @@
 {
   "app": {
-    "name": "RentShield",
-    "tagline": "Protect Your Home"
+    "name": "RepairLetter",
+    "tagline": "Your Repair Letter. Your Rights."
   },
 
   "nav": {
@@ -15,14 +15,14 @@
     "headline_cta": "We'll make it legal.",
     "description": "Photo the problem. Speak about it. A legal letter citing UK housing law is sent to your landlord in 60 seconds. Any language. Any tenant.",
     "step1_label": "Photo the defect",
-    "step1_detail": "AI identifies the issue and severity",
+    "step1_detail": "AI classifies against 29 HHSRS hazard categories",
     "step2_label": "Describe it in any language",
-    "step2_detail": "Voice-to-text in 40+ languages",
+    "step2_detail": "Voice-to-text in 50+ languages with auto-translation",
     "step3_label": "Legal letter sent instantly",
-    "step3_detail": "Citing s.11 LTA 1985, HHSRS, Homes Act 2018",
+    "step3_detail": "Branded PDF with photos, citing three UK statutes",
     "step4_label": "14-day deadline tracked",
     "step4_detail": "Auto-escalation to environmental health if ignored",
-    "cta_report": "Report a problem — £4.99 per letter",
+    "cta_report": "Send a repair letter — £4.99",
     "cta_dashboard": "Go to dashboard",
     "evidence_note": "Your evidence is yours. Download anytime. Free forever.",
     "trust_gdpr": "UK GDPR",
@@ -92,7 +92,7 @@
     "step_review_landlord_note": "Used only to send the letter. Never shared or marketed to.",
     "step_review_what_next": "What happens next:",
     "step_review_what_next_detail": "After payment, a legal letter citing s.11 Landlord and Tenant Act 1985, the Housing Health and Safety Rating System (HHSRS), and the Homes (Fitness for Human Habitation) Act 2018 will be sent to your landlord with your evidence attached. They have 14 days to respond. If they don't, we'll prepare an environmental health complaint for your local council.",
-    "step_review_disclaimer": "This is not legal advice. RentShield generates correspondence based on UK housing law. For specific legal guidance, consult a solicitor or Citizens Advice.",
+    "step_review_disclaimer": "This is not legal advice. RepairLetter generates correspondence based on UK housing law. For specific legal guidance, consult a solicitor or Citizens Advice.",
 
     "continue": "Continue",
     "pay_send": "Pay £4.99 & Send Letter",
@@ -122,7 +122,7 @@
 
   "consent": {
     "title": "Your Data, Your Control",
-    "intro": "RentShield needs your permission to process the following data to generate and send legal letters on your behalf.",
+    "intro": "RepairLetter needs your permission to process the following data to generate and send legal letters on your behalf.",
     "data_title": "Personal data processing",
     "data_detail": "We collect your email (encrypted) and landlord contact details solely to send legal correspondence. We never share your data with third parties. You can delete your account and all data at any time.",
     "voice_title": "Voice recording & transcription",
