@@ -4,7 +4,7 @@ import { getDb, writeAuditLog } from '../lib/db';
 
 export const uploadRoutes = new Hono<{ Bindings: Env }>();
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'audio/webm'];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'audio/webm', 'audio/ogg', 'audio/mp4'];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const MAX_AUDIO_SIZE = 25 * 1024 * 1024;
 
@@ -14,12 +14,14 @@ uploadRoutes.post('/upload-url', async (c) => {
   const body = await c.req.json<{ contentType: string; caseId?: string }>();
 
   if (!ALLOWED_TYPES.includes(body.contentType)) {
-    return c.json({ error: 'Unsupported file type. Only JPEG, PNG, and WebM accepted.' }, 400);
+    return c.json({ error: 'Unsupported file type. Only JPEG, PNG, OGG, WebM, and MP4 accepted.' }, 400);
   }
 
   const userId = c.get('userId') as string;
   const ext = body.contentType === 'image/jpeg' ? 'jpg'
     : body.contentType === 'image/png' ? 'png'
+    : body.contentType === 'audio/ogg' ? 'ogg'
+    : body.contentType === 'audio/mp4' ? 'm4a'
     : 'webm';
 
   const r2Key = `users/${userId}/evidence/${crypto.randomUUID()}.${ext}`;
@@ -40,7 +42,6 @@ uploadRoutes.post('/upload-url', async (c) => {
 });
 
 // ── PUT /api/upload/:key — proxy upload to R2 ───────────────
-// Now computes SHA-256 hash of every file at upload time.
 
 uploadRoutes.put('/upload/:key{.+}', async (c) => {
   const r2Key = decodeURIComponent(c.req.param('key'));
@@ -97,7 +98,6 @@ uploadRoutes.put('/upload/:key{.+}', async (c) => {
     sha256: sha256Hash,
   });
 
-  // Return hash so it can be stored in the evidence record
   return c.json({ success: true, r2Key, sha256Hash });
 });
 
@@ -136,6 +136,10 @@ function validateMagicBytes(bytes: Uint8Array, contentType: string): boolean {
       return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
     case 'audio/webm':
       return bytes[0] === 0x1A && bytes[1] === 0x45 && bytes[2] === 0xDF && bytes[3] === 0xA3;
+    case 'audio/ogg':
+      return bytes[0] === 0x4F && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53;
+    case 'audio/mp4':
+      return bytes.length >= 8 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70;
     default:
       return false;
   }
