@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { SignedIn, SignedOut, SignInButton } from '@clerk/clerk-react';
 import { Helmet } from 'react-helmet-async';
 import {
@@ -331,8 +331,8 @@ export function LandingPage() {
             Citizens Advice, Shelter, or a qualified solicitor.
           </p>
           <div className="flex flex-wrap gap-4 text-xs">
-            <a href="/privacy" className="text-white/40 hover:text-white/70 transition-colors">Privacy Policy</a>
-            <a href="/terms" className="text-white/40 hover:text-white/70 transition-colors">Terms of Service</a>
+           <Link to="/privacy" className="text-white/40 hover:text-white/70 transition-colors">Privacy Policy</Link>
+           <Link to="/terms" className="text-white/40 hover:text-white/70 transition-colors">Terms of Service</Link>
           </div>
           <p className="text-[10px] text-white/15 mt-6">
             © {new Date().getFullYear()} RepairLetter · Autaimate · ICO Registered · UK GDPR Compliant
