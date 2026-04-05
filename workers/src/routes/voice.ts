@@ -117,10 +117,11 @@ async function transcribeWithSpeechmatics(
       transcription_config: {
         language: 'auto',
         operating_point: 'enhanced',
-        enable_entities: true,
       },
     })
   );
+
+  console.log('Speechmatics: sending audio, size:', audioBytes.byteLength, 'bytes');
 
   // Submit job
   const submitRes = await fetch(`${SPEECHMATICS_BASE}/jobs`, {
