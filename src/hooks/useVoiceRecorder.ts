@@ -20,8 +20,8 @@ interface UseVoiceRecorderReturn {
  *
  * Flow:
  * 1. Request microphone permission
- * 2. Record audio as WebM (best cross-browser support)
- * 3. On stop: validate file, strip to blob, upload to R2
+ * 2. Record audio as OGG/Opus (Speechmatics compatible) or MP4 (Safari)
+ * 3. On stop: validate file, upload to R2
  * 4. Call /api/transcribe → Speechmatics (primary) or Whisper (fallback)
  * 5. Return transcription with language detection + English translation
  *
@@ -145,7 +145,10 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       return;
     }
 
-    const audioBlob = new Blob(chunks, { type: chunks[0]?.type ?? 'audio/webm' });
+    // Determine the actual content type from the recorded chunks
+    const rawType = chunks[0]?.type || 'audio/ogg';
+    const baseType = rawType.split(';')[0] ?? 'audio/ogg';
+    const audioBlob = new Blob(chunks, { type: rawType });
 
     // Validate
     const validation = validateAudioFile(audioBlob);
@@ -165,10 +168,16 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
     setState('uploading');
 
+    // Map base MIME type to file extension
+    const ext = baseType === 'audio/ogg' ? 'ogg'
+      : baseType === 'audio/mp4' ? 'm4a'
+      : baseType === 'audio/webm' ? 'webm'
+      : 'ogg';
+
     try {
-      // Get signed upload URL
+      // Get upload URL using the actual content type
       const urlRes = await api.post<UploadUrlResponse>('/api/upload-url', {
-        contentType: 'audio/webm',
+        contentType: baseType,
       });
 
       if (!urlRes.success || !urlRes.data) {
@@ -176,7 +185,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       }
 
       // Upload to R2
-      const audioFile = new File([audioBlob], 'recording.webm', { type: 'audio/webm' });
+      const audioFile = new File([audioBlob], `recording.${ext}`, { type: baseType });
       const uploaded = await api.uploadToR2(urlRes.data.uploadUrl, audioFile);
 
       if (!uploaded) {
@@ -225,14 +234,15 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
 /**
  * Get the best supported audio MIME type for MediaRecorder.
- * WebM/Opus is preferred (Chrome, Firefox, Edge).
- * Falls back to MP4/AAC (Safari).
+ * OGG/Opus preferred — supported by Speechmatics Batch API.
+ * Falls back to WebM (needs conversion) or MP4/AAC (Safari).
  */
 function getSupportedMimeType(): string {
   const types = [
+    'audio/ogg;codecs=opus',
+    'audio/ogg',
     'audio/webm;codecs=opus',
     'audio/webm',
-    'audio/ogg;codecs=opus',
     'audio/mp4',
   ];
 
