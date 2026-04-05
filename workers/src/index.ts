@@ -78,7 +78,7 @@ app.use('/api/*', async (c, next) => {
 
 // ── Health check ────────────────────────────────────────────
 
-app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString(), hasDb: !!c.env.DATABASE_URL, hasKey: !!c.env.DB_ENCRYPTION_KEY }));
 
 // ── Routes ──────────────────────────────────────────────────
 
