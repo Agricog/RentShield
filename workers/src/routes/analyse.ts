@@ -13,8 +13,6 @@ interface AnalysisResult {
   confidence: number;
 }
 
-// System prompt is separate from user content — Claude's system prompt
-// cannot be overridden by image content
 const SYSTEM_PROMPT = `You are a UK housing defect analyst. You classify property defects against the Housing Health and Safety Rating System (HHSRS).
 
 You MUST return a JSON object with exactly these fields and nothing else:
@@ -48,20 +46,17 @@ analyseRoutes.post('/analyse-photo', async (c) => {
     );
   }
 
-  const body = await c.req.json<{ r2Key: string; caseId?: string }>();
+  const body = await c.req.json<{ r2Key: string; caseId?: string; sha256Hash?: string }>();
   const userId = c.get('userId') as string;
 
-  // Security: only own files
   if (!body.r2Key.startsWith(`users/${userId}/`)) {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
-  // Validate r2Key format — prevent path traversal
   if (body.r2Key.includes('..') || body.r2Key.includes('//')) {
     return c.json({ error: 'Invalid file path' }, 400);
   }
 
-  // Fetch image from R2
   const object = await c.env.EVIDENCE_BUCKET.get(body.r2Key);
   if (!object) {
     return c.json({ error: 'Photo not found in storage' }, 404);
@@ -71,12 +66,11 @@ analyseRoutes.post('/analyse-photo', async (c) => {
   const base64Image = arrayBufferToBase64(imageBytes);
   const mediaType = object.httpMetadata?.contentType ?? 'image/jpeg';
 
-  // Validate media type is an image
   if (!mediaType.startsWith('image/')) {
     return c.json({ error: 'File is not an image' }, 400);
   }
 
-  // Call Claude Vision — system prompt separate from user content
+  // Call Claude Vision
   const analysisRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -92,18 +86,8 @@ analyseRoutes.post('/analyse-photo', async (c) => {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64Image,
-              },
-            },
-            {
-              type: 'text',
-              text: USER_PROMPT,
-            },
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Image } },
+            { type: 'text', text: USER_PROMPT },
           ],
         },
       ],
@@ -124,56 +108,63 @@ analyseRoutes.post('/analyse-photo', async (c) => {
     return c.json({ error: 'No analysis returned' }, 502);
   }
 
-  // Parse and validate JSON response
   let analysis: AnalysisResult;
   try {
-    // Strip any markdown fencing Claude might add despite instructions
-    const cleaned = textContent.text
-      .replace(/```json\s*/g, '')
-      .replace(/```\s*/g, '')
-      .trim();
+    const cleaned = textContent.text.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
     analysis = JSON.parse(cleaned);
   } catch {
     console.error('Failed to parse Claude response:', textContent.text);
     return c.json({ error: 'Analysis returned invalid format. Please retake the photo.' }, 502);
   }
 
-  // Validate all required fields and ranges
+  // Validate
   const validTypes = ['damp', 'mould', 'leak', 'heating', 'electrics', 'other'];
-  if (!validTypes.includes(analysis.defectType)) {
-    return c.json({ error: 'Invalid analysis result' }, 502);
-  }
-  if (
-    typeof analysis.severity !== 'number' ||
-    analysis.severity < 1 ||
-    analysis.severity > 5
-  ) {
-    return c.json({ error: 'Invalid severity in analysis' }, 502);
-  }
-  if (!analysis.hhsrsCategory || typeof analysis.hhsrsCategory !== 'string') {
-    return c.json({ error: 'Missing HHSRS category in analysis' }, 502);
-  }
-  if (!analysis.descriptionEn || typeof analysis.descriptionEn !== 'string') {
-    return c.json({ error: 'Missing description in analysis' }, 502);
-  }
+  if (!validTypes.includes(analysis.defectType)) return c.json({ error: 'Invalid analysis result' }, 502);
+  if (typeof analysis.severity !== 'number' || analysis.severity < 1 || analysis.severity > 5) return c.json({ error: 'Invalid severity' }, 502);
+  if (!analysis.hhsrsCategory || typeof analysis.hhsrsCategory !== 'string') return c.json({ error: 'Missing HHSRS category' }, 502);
+  if (!analysis.descriptionEn || typeof analysis.descriptionEn !== 'string') return c.json({ error: 'Missing description' }, 502);
 
-  // Sanitise description — strip any HTML/script tags from Claude output
-  analysis.descriptionEn = analysis.descriptionEn
-    .replace(/<[^>]*>/g, '')
-    .slice(0, 500);
+  // Sanitise
+  analysis.descriptionEn = analysis.descriptionEn.replace(/<[^>]*>/g, '').slice(0, 500);
 
-  // Store in evidence table if caseId provided
+  // Store in evidence table with integrity hash
   if (body.caseId) {
-    // Validate caseId format
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.caseId)) {
       return c.json({ error: 'Invalid case ID' }, 400);
     }
 
     const db = getDb(c.env, userId);
+
+    // Insert evidence record with SHA-256 hash
     await db.query(
-      `INSERT INTO evidence (case_id, r2_key, content_type, ai_analysis)
-       VALUES ($1, $2, $3, $4::jsonb)`,
-      [body.caseId, body.r2Key, mediaType, JSON.stringify(analysis)]
+      `INSERT INTO evidence (case_id, r2_key, content_type, ai_analysis, sha256_hash)
+       VALUES ($1, $2, $3, $4::jsonb, $5)`,
+      [body.caseId, body.r2Key, mediaType, JSON.stringify(analysis), body.sha256Hash ?? null]
+    );
+
+    // ── Timeline events ─────────────────────────────────────
+
+    // Photo uploaded event
+    await db.query(
+      `INSERT INTO case_events (case_id, user_id, event_type, detail)
+       VALUES ($1, $2, 'photo.uploaded', $3::jsonb)`,
+      [body.caseId, userId, JSON.stringify({
+        r2Key: body.r2Key,
+        contentType: mediaType,
+        sha256: body.sha256Hash ?? null,
+      })]
+    );
+
+    // Photo analysed event
+    await db.query(
+      `INSERT INTO case_events (case_id, user_id, event_type, detail)
+       VALUES ($1, $2, 'photo.analysed', $3::jsonb)`,
+      [body.caseId, userId, JSON.stringify({
+        defectType: analysis.defectType,
+        severity: analysis.severity,
+        hhsrsCategory: analysis.hhsrsCategory,
+        confidence: analysis.confidence,
+      })]
     );
 
     await writeAuditLog(db, 'photo.analysed', {
@@ -181,6 +172,7 @@ analyseRoutes.post('/analyse-photo', async (c) => {
       r2Key: body.r2Key,
       severity: analysis.severity,
       hhsrsCategory: analysis.hhsrsCategory,
+      sha256: body.sha256Hash ?? null,
     });
   }
 
