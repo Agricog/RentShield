@@ -2,11 +2,11 @@ import { Hono } from 'hono';
 import type { Env } from '../index';
 import { getDb, writeAuditLog } from '../lib/db';
 import { checkRateLimit, LETTER_RATE_LIMIT } from '../middleware/ratelimit';
+import { generateLetterPdf } from '../lib/pdf';
+import { landlordLetterEmail, tenantConfirmationEmail } from '../lib/email-templates';
 
 export const letterRoutes = new Hono<{ Bindings: Env }>();
 
-// System prompt — contains all instructions and legal requirements.
-// User-supplied content goes in the user message only.
 const LETTER_SYSTEM_PROMPT = `You are a UK housing law specialist. You draft formal legal letters from tenants to landlords about property defects.
 
 Generate a formal letter with these sections:
@@ -52,30 +52,18 @@ letterRoutes.post('/generate-letter', async (c) => {
     tenantAccount: string;
   }>();
 
-  // Validate inputs
+  // Validate
   const validTypes = ['damp', 'mould', 'leak', 'heating', 'electrics', 'other'];
-  if (!validTypes.includes(body.defectType)) {
-    return c.json({ error: 'Invalid defect type' }, 400);
-  }
-  if (typeof body.severity !== 'number' || body.severity < 1 || body.severity > 5) {
-    return c.json({ error: 'Invalid severity' }, 400);
-  }
-  if (!body.hhsrsCategory || body.hhsrsCategory.length > 100) {
-    return c.json({ error: 'Invalid HHSRS category' }, 400);
-  }
+  if (!validTypes.includes(body.defectType)) return c.json({ error: 'Invalid defect type' }, 400);
+  if (typeof body.severity !== 'number' || body.severity < 1 || body.severity > 5) return c.json({ error: 'Invalid severity' }, 400);
+  if (!body.hhsrsCategory || body.hhsrsCategory.length > 100) return c.json({ error: 'Invalid HHSRS category' }, 400);
   if (!body.caseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.caseId)) {
     return c.json({ error: 'Invalid case ID' }, 400);
   }
 
-  // Sanitise user-supplied text — cap length, strip HTML
-  const sanitisedDescription = (body.description ?? '')
-    .replace(/<[^>]*>/g, '')
-    .slice(0, 2000);
-  const sanitisedAccount = (body.tenantAccount ?? '')
-    .replace(/<[^>]*>/g, '')
-    .slice(0, 2000);
+  const sanitisedDescription = (body.description ?? '').replace(/<[^>]*>/g, '').slice(0, 2000);
+  const sanitisedAccount = (body.tenantAccount ?? '').replace(/<[^>]*>/g, '').slice(0, 2000);
 
-  // User message — contains only the defect data, no instructions
   const userMessage = `DEFECT DETAILS:
 - Type: ${body.defectType}
 - Severity: ${body.severity}/5
@@ -85,7 +73,6 @@ letterRoutes.post('/generate-letter', async (c) => {
 TENANT'S ACCOUNT OF THE PROBLEM:
 ${sanitisedAccount}`;
 
-  // Generate letter — system prompt is separate from user content
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -101,50 +88,30 @@ ${sanitisedAccount}`;
     }),
   });
 
-  if (!res.ok) {
-    console.error('Claude letter generation failed:', res.status);
-    return c.json({ error: 'Letter generation failed. Please try again.' }, 502);
-  }
+  if (!res.ok) return c.json({ error: 'Letter generation failed. Please try again.' }, 502);
 
-  const claudeRes = await res.json() as {
-    content: Array<{ type: string; text?: string }>;
-  };
-
+  const claudeRes = await res.json() as { content: Array<{ type: string; text?: string }> };
   const letterText = claudeRes.content.find((b) => b.type === 'text')?.text;
-  if (!letterText) {
-    return c.json({ error: 'No letter content generated' }, 502);
-  }
+  if (!letterText) return c.json({ error: 'No letter content generated' }, 502);
 
-  // Validate: must contain all three legal citations
   const requiredCitations = [
     'Landlord and Tenant Act 1985',
     'Housing Health and Safety Rating System',
     'Homes (Fitness for Human Habitation) Act 2018',
   ];
-
-  const missingCitations = requiredCitations.filter(
-    (citation) => !letterText.includes(citation)
-  );
-
-  if (missingCitations.length > 0) {
-    console.error('Missing citations in generated letter:', missingCitations);
-    return c.json(
-      { error: 'Generated letter missing required legal citations. Please try again.' },
-      502
-    );
-  }
+  const missing = requiredCitations.filter((c) => !letterText.includes(c));
+  if (missing.length > 0) return c.json({ error: 'Generated letter missing required legal citations. Please try again.' }, 502);
 
   const userId = c.get('userId') as string;
   const db = getDb(c.env, userId);
-  await writeAuditLog(db, 'letter.generated', {
-    caseId: body.caseId,
-    charCount: letterText.length,
-  });
+  await writeAuditLog(db, 'letter.generated', { caseId: body.caseId, charCount: letterText.length });
 
   return c.json({ letterText, citations: requiredCitations });
 });
 
-// ── POST /api/send-letter — called after Stripe payment ─────
+// ── POST /api/send-letter ───────────────────────────────────
+// Called after Stripe payment succeeds. Generates PDF, sends to landlord,
+// sends tenant confirmation, stores encrypted, translates for tenant.
 
 letterRoutes.post('/send-letter', async (c) => {
   const userId = c.get('userId') as string;
@@ -153,37 +120,79 @@ letterRoutes.post('/send-letter', async (c) => {
     caseId: string;
     letterText: string;
     landlordEmail: string;
+    tenantLanguage?: string;
   }>();
 
-  // Validate
   if (!body.caseId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.caseId)) {
     return c.json({ error: 'Invalid case ID' }, 400);
   }
-  if (!body.letterText || body.letterText.length < 100) {
-    return c.json({ error: 'Letter content too short' }, 400);
-  }
-  if (!body.landlordEmail?.includes('@') || body.landlordEmail.length > 254) {
-    return c.json({ error: 'Invalid landlord email' }, 400);
-  }
+  if (!body.letterText || body.letterText.length < 100) return c.json({ error: 'Letter content too short' }, 400);
+  if (!body.landlordEmail?.includes('@') || body.landlordEmail.length > 254) return c.json({ error: 'Invalid landlord email' }, 400);
 
   const db = getDb(c.env, userId);
 
-  // Verify case belongs to user and is in draft status
-  const cases = await db.query<{ id: string; status: string }>(
-    `SELECT id, status FROM cases WHERE id = $1`,
+  // Verify case is draft
+  const cases = await db.query<{ id: string; status: string; defect_type: string; defect_severity: number; hhsrs_category: string }>(
+    `SELECT id, status, defect_type, defect_severity, hhsrs_category FROM cases WHERE id = $1`,
+    [body.caseId]
+  );
+  if (cases.length === 0) return c.json({ error: 'Case not found' }, 404);
+
+  const caseData = cases[0] as Record<string, unknown>;
+  if (caseData.status !== 'draft') return c.json({ error: 'Letter already sent for this case' }, 400);
+
+  const caseRef = (body.caseId).slice(0, 8).toUpperCase();
+
+  // ── Load evidence photos for PDF ──────────────────────────
+
+  const evidence = await db.query<{ r2_key: string; content_type: string; ai_analysis: Record<string, unknown> | null; created_at: string }>(
+    `SELECT r2_key, content_type, ai_analysis, created_at FROM evidence WHERE case_id = $1 ORDER BY created_at ASC`,
     [body.caseId]
   );
 
-  if (cases.length === 0) {
-    return c.json({ error: 'Case not found' }, 404);
+  const photos = [];
+  for (const ev of evidence) {
+    const row = ev as Record<string, unknown>;
+    if (!(row.content_type as string).startsWith('image/')) continue;
+    try {
+      const obj = await c.env.EVIDENCE_BUCKET.get(row.r2_key as string);
+      if (!obj) continue;
+      const imageBytes = new Uint8Array(await obj.arrayBuffer());
+      const analysis = row.ai_analysis as Record<string, unknown> | null;
+      photos.push({
+        imageBytes,
+        contentType: row.content_type as string,
+        analysisLabel: analysis ? `${analysis.hhsrsCategory ?? 'Unknown'} — Severity ${analysis.severity ?? '?'}/5` : 'Unclassified',
+        uploadedAt: new Date(row.created_at as string).toISOString(),
+      });
+    } catch { /* skip */ }
   }
 
-  const caseData = cases[0] as Record<string, string>;
-  if (caseData.status !== 'draft') {
-    return c.json({ error: 'Letter already sent for this case' }, 400);
-  }
+  // ── Generate branded PDF ──────────────────────────────────
 
-  // Send via Resend
+  const pdfBytes = await generateLetterPdf({
+    caseId: body.caseId,
+    caseRef,
+    defectType: caseData.defect_type as string,
+    severity: caseData.defect_severity as number,
+    hhsrsCategory: (caseData.hhsrs_category as string) ?? '',
+    letterText: body.letterText,
+    letterDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+    photos,
+  });
+
+  // Store PDF in R2
+  const pdfKey = `users/${userId}/letters/${body.caseId}-demand.pdf`;
+  await c.env.EVIDENCE_BUCKET.put(pdfKey, pdfBytes, {
+    httpMetadata: { contentType: 'application/pdf' },
+    customMetadata: { userId, caseId: body.caseId, type: 'letter_pdf' },
+  });
+
+  // ── Send to landlord — HTML email with PDF attachment ─────
+
+  const pdfBase64 = uint8ArrayToBase64(pdfBytes);
+  const landlordHtml = landlordLetterEmail(caseRef);
+
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -193,8 +202,16 @@ letterRoutes.post('/send-letter', async (c) => {
     body: JSON.stringify({
       from: 'RentShield Notices <notices@rentshield.co.uk>',
       to: [body.landlordEmail],
-      subject: 'Formal Notice of Disrepair — Action Required Within 14 Days',
+      subject: `Formal Notice of Disrepair — Case ${caseRef} — Action Required Within 14 Days`,
+      html: landlordHtml,
       text: body.letterText,
+      attachments: [
+        {
+          filename: `RentShield-Notice-${caseRef}.pdf`,
+          content: pdfBase64,
+          type: 'application/pdf',
+        },
+      ],
     }),
   });
 
@@ -205,7 +222,8 @@ letterRoutes.post('/send-letter', async (c) => {
 
   const emailData = await emailRes.json() as { id: string };
 
-  // Store letter encrypted
+  // ── Store encrypted letter in DB ──────────────────────────
+
   await db.query(
     `INSERT INTO letters (case_id, letter_type, content_encrypted, sent_to_encrypted, resend_message_id)
      VALUES ($1, 'initial_demand',
@@ -215,21 +233,32 @@ letterRoutes.post('/send-letter', async (c) => {
     [body.caseId, body.letterText, body.landlordEmail, emailData.id]
   );
 
-  // Update case status — triggers deadline_at via DB trigger
+  // Update case status — triggers deadline via DB trigger
   await db.query(
     `UPDATE cases SET status = 'sent', letter_sent_at = now() WHERE id = $1`,
     [body.caseId]
   );
 
-  // Send tenant confirmation
+  // ── Send tenant confirmation ──────────────────────────────
+
   const userRows = await db.query<{ email: string }>(
-    `SELECT decrypt_value(email_encrypted, current_setting('app.encryption_key')) as email
-     FROM users WHERE id = $1`,
+    `SELECT decrypt_value(email_encrypted, current_setting('app.encryption_key')) as email FROM users WHERE id = $1`,
     [userId]
   );
 
   const tenantEmail = (userRows[0] as Record<string, string> | undefined)?.email;
   if (tenantEmail) {
+    const deadlineDate = new Date(Date.now() + 14 * 86400000).toLocaleDateString('en-GB', {
+      day: 'numeric', month: 'long', year: 'numeric',
+    });
+
+    const confirmHtml = tenantConfirmationEmail(
+      caseRef,
+      caseData.defect_type as string,
+      caseData.defect_severity as number,
+      deadlineDate
+    );
+
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -239,8 +268,15 @@ letterRoutes.post('/send-letter', async (c) => {
       body: JSON.stringify({
         from: 'RentShield <hello@rentshield.co.uk>',
         to: [tenantEmail],
-        subject: 'Your letter has been sent — RentShield',
-        text: `Your formal notice of disrepair has been sent to your landlord.\n\nCase reference: ${body.caseId.slice(0, 8)}\n\nWhat happens next:\n- Your landlord has 14 days to respond\n- If they don't respond, we'll prepare a complaint for your local council's Environmental Health department\n- Track your case at any time in the RentShield app\n\nYour evidence pack is always available to download.\n\nThis is not legal advice. For legal guidance, contact Citizens Advice or a solicitor.`,
+        subject: `Your letter has been sent — Case ${caseRef}`,
+        html: confirmHtml,
+        attachments: [
+          {
+            filename: `RentShield-Notice-${caseRef}.pdf`,
+            content: pdfBase64,
+            type: 'application/pdf',
+          },
+        ],
       }),
     });
   }
@@ -248,7 +284,17 @@ letterRoutes.post('/send-letter', async (c) => {
   await writeAuditLog(db, 'letter.sent', {
     caseId: body.caseId,
     resendMessageId: emailData.id,
+    pdfSizeBytes: pdfBytes.length,
+    photoCount: photos.length,
   });
 
   return c.json({ success: true, messageId: emailData.id });
 });
+
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]!);
+  }
+  return btoa(binary);
+}
