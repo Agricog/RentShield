@@ -44,8 +44,8 @@ app.use(
   cors({
     origin: (origin) => {
       const allowed = [
-        'https://rentshield.co.uk',
-        'https://www.rentshield.co.uk',
+        'https://repairletter.co.uk',
+        'https://www.repairletter.co.uk',
       ];
       if (origin?.startsWith('http://localhost:')) {
         return origin;
