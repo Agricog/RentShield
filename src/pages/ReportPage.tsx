@@ -511,7 +511,32 @@ function ReviewStep({
       }
 
       if (paymentIntent?.status === 'succeeded') {
-        // 4. Navigate to case detail — letter generation triggered by webhook
+        // 4. Generate the legal letter
+        const letterRes = await api.post<{ letterText: string }>('/api/generate-letter', {
+          caseId,
+          defectType: state.defectType,
+          severity: analysis?.severity ?? 3,
+          hhsrsCategory: analysis?.hhsrsCategory ?? 'Unknown',
+          description: analysis?.descriptionEn ?? '',
+          tenantAccount: transcription?.text ?? '',
+        });
+
+        if (!letterRes.success || !letterRes.data) {
+          throw new Error(letterRes.error ?? 'Letter generation failed');
+        }
+
+        // 5. Send letter to landlord via email with PDF
+        const sendRes = await api.post<{ success: boolean }>('/api/send-letter', {
+          caseId,
+          letterText: letterRes.data.letterText,
+          landlordEmail: state.landlordEmail,
+        });
+
+        if (!sendRes.success) {
+          throw new Error(sendRes.error ?? 'Failed to send letter');
+        }
+
+        // 6. Navigate to case detail
         navigate(`/case/${caseId}`);
       }
     } catch (err) {
