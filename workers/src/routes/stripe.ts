@@ -141,14 +141,11 @@ stripeRoutes.post('/webhook', async (c) => {
       return c.json({ received: true });
     }
 
-    // Update case status — letter generation + sending happens
-    // via the /api/send-letter endpoint called by the frontend
-    // after payment confirmation. The webhook is a safety net.
-    await systemDb.query(
-      `UPDATE cases SET status = 'sent', letter_sent_at = now()
-       WHERE id = $1 AND user_id = $2 AND status = 'draft'`,
-      [caseId, userId]
-    );
+    // Record payment success only — do NOT update case status here.
+    // Case status is updated by /api/send-letter after the letter
+    // is actually generated, PDF created, and email delivered.
+    // Updating status here causes a race condition where the webhook
+    // marks the case as 'sent' before the letter exists.
 
     await writeSystemAuditLog(c.env, userId, 'payment.succeeded', {
       caseId,
