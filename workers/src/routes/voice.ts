@@ -131,6 +131,10 @@ async function transcribeWithSpeechmatics(
       language: 'auto',
       operating_point: 'enhanced',
     },
+    language_identification_config: {
+      expected_languages: ['en', 'pl', 'ro', 'es', 'fr', 'de', 'pt', 'it', 'ar', 'ur', 'bn', 'hi', 'zh', 'tr'],
+      default_language: 'en',
+    },
   });
 
   const filename = getAudioFilename(contentType);
