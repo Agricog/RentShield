@@ -50,7 +50,8 @@ export function CaseDetailPage() {
     try {
       const res = await api.post<EvidencePackResponse>('/api/evidence-pack', { caseId });
       if (res.success && res.data?.downloadUrl) {
-        window.open(res.data.downloadUrl, '_blank');
+        const apiUrl = import.meta.env.VITE_API_URL;
+        window.open(`${apiUrl}${res.data.downloadUrl}`, '_blank');
       }
     } finally {
       setDownloading(false);
