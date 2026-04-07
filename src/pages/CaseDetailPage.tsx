@@ -50,8 +50,16 @@ export function CaseDetailPage() {
     try {
       const res = await api.post<EvidencePackResponse>('/api/evidence-pack', { caseId });
       if (res.success && res.data?.downloadUrl) {
-        const apiUrl = import.meta.env.VITE_API_URL;
-        window.open(`${apiUrl}${res.data.downloadUrl}`, '_blank');
+        const blob = await api.getBlob(res.data.downloadUrl);
+        if (!blob) throw new Error('Download failed');
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `RepairLetter-EvidencePack-${caseId.slice(0, 8).toUpperCase()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
     } finally {
       setDownloading(false);
