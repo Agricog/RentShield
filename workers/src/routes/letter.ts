@@ -69,7 +69,11 @@ letterRoutes.post('/generate-letter', async (c) => {
   const sanitisedName = (body.tenantName ?? '').replace(/<[^>]*>/g, '').slice(0, 200);
   const sanitisedAddress = (body.propertyAddress ?? '').replace(/<[^>]*>/g, '').slice(0, 500);
 
-  const userMessage = `DEFECT DETAILS:
+  const todayFormatted = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const userMessage = `TODAY'S DATE: ${todayFormatted}
+
+DEFECT DETAILS:
 - Type: ${body.defectType}
 - Severity: ${body.severity}/5
 - HHSRS Category: ${body.hhsrsCategory}
