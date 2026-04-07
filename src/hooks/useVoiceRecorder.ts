@@ -16,23 +16,26 @@ interface UseVoiceRecorderReturn {
 }
 
 /**
- * Hook for recording voice notes via the browser's MediaRecorder API.
+ * Voice recording hook using AudioWorklet for raw PCM capture.
+ *
+ * WHY AudioWorklet instead of MediaRecorder:
+ * - MediaRecorder outputs compressed containers (WebM on Chrome, OGG on Firefox, MP4 on Safari)
+ * - Converting these back to PCM via decodeAudioData() fails unpredictably across browsers
+ * - Speechmatics themselves recommend AudioWorklet over MediaRecorder for PCM capture
+ * - AudioWorklet runs on a dedicated audio thread — zero main-thread blocking
+ * - Raw Float32 PCM → WAV encoding is trivial (44-byte header + samples) and cannot fail
  *
  * Flow:
- * 1. Request microphone permission
- * 2. Record audio (browser chooses best container — OGG, WebM, or MP4)
- * 3. On stop: convert to 16kHz mono WAV for maximum transcription accuracy
- * 4. Upload WAV to R2
- * 5. Call /api/transcribe → Speechmatics (primary) or Whisper (fallback)
- * 6. Return transcription with language detection + English translation
+ * 1. Request microphone → AudioContext at 16kHz → AudioWorklet captures raw PCM
+ * 2. On stop: encode accumulated Float32 samples as 16-bit PCM WAV
+ * 3. Upload WAV to R2 (evidence storage)
+ * 4. POST /api/transcribe → Speechmatics (primary) or Whisper (fallback)
+ * 5. Return transcription with language detection + English translation
  *
- * WAV format rationale:
+ * Audio format: 16kHz mono 16-bit PCM WAV
  * - Universally supported by Speechmatics, Whisper, and all STT providers
- * - Uncompressed PCM delivers the best word error rate (0% degradation vs 2% OGG, 10% MP3)
- * - 16kHz sample rate is optimal for human speech — higher rates add no STT value
- * - Mono channel is standard for speech recognition
- *
- * Audio is uploaded to R2 then deleted server-side within 1 hour.
+ * - 16kHz captures the full human speech frequency range (0–8kHz Nyquist)
+ * - Uncompressed PCM delivers the best word error rate (0% degradation)
  */
 export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const [state, setState] = useState<RecorderState>('idle');
@@ -40,76 +43,92 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const [error, setError] = useState<string | null>(null);
   const [transcription, setTranscription] = useState<TranscriptionResult | null>(null);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const samplesRef = useRef<Float32Array[]>([]);
+  const totalSamplesRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const startTimeRef = useRef(0);
+  const stoppingRef = useRef(false);
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      stopStream();
-      if (timerRef.current) clearInterval(timerRef.current);
+      cleanup();
     };
   }, []);
 
-  const stopStream = useCallback(() => {
+  const cleanup = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (workletNodeRef.current) {
+      workletNodeRef.current.port.postMessage({ command: 'stop' });
+      workletNodeRef.current.disconnect();
+      workletNodeRef.current = null;
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
     }
   }, []);
 
   const startRecording = useCallback(async () => {
     setError(null);
     setTranscription(null);
-    chunksRef.current = [];
+    samplesRef.current = [];
+    totalSamplesRef.current = 0;
+    stoppingRef.current = false;
 
     try {
+      // Create AudioContext at 16kHz — optimal for speech recognition
+      // This tells the browser to resample the mic input to 16kHz for us
+      const audioContext = new AudioContext({ sampleRate: 16000 });
+      audioContextRef.current = audioContext;
+
+      // Load the AudioWorklet processor module
+      // The worklet runs on a separate audio thread — no main thread blocking
+      const workletUrl = new URL('/pcm-recorder-worklet.js', window.location.origin).href;
+      await audioContext.audioWorklet.addModule(workletUrl);
+
       // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
+          channelCount: 1,        // Mono — speech is not spatial
           echoCancellation: true,
           noiseSuppression: true,
-          sampleRate: 16000, // Optimal for speech recognition
         },
       });
-
       streamRef.current = stream;
 
-      // Determine best supported MIME type for recording
-      const mimeType = getSupportedMimeType();
+      // Connect: Microphone → AudioWorklet
+      const source = audioContext.createMediaStreamSource(stream);
+      const workletNode = new AudioWorkletNode(audioContext, 'pcm-recorder-processor');
+      workletNodeRef.current = workletNode;
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType,
-        audioBitsPerSecond: 64000,
-      });
-
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
+      // Receive raw PCM samples from the worklet thread
+      workletNode.port.onmessage = (event: MessageEvent) => {
+        if (event.data.type === 'audio' && !stoppingRef.current) {
+          const samples = event.data.samples as Float32Array;
+          samplesRef.current.push(samples);
+          totalSamplesRef.current += samples.length;
         }
       };
 
-      mediaRecorder.onstop = () => {
-        processRecording();
-      };
+      source.connect(workletNode);
+      // AudioWorklet doesn't need to connect to destination — it's input-only
+      // But some browsers require a connection to keep the graph alive
+      workletNode.connect(audioContext.destination);
 
-      mediaRecorder.onerror = () => {
-        setError('Recording failed. Please try again.');
-        setState('error');
-        stopStream();
-      };
+      // Tell the worklet to start capturing
+      workletNode.port.postMessage({ command: 'start' });
 
-      // Start recording — single blob on stop (avoids chunk timing race)
-      mediaRecorder.start();
       setState('recording');
       startTimeRef.current = Date.now();
 
@@ -118,13 +137,14 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 500);
 
-      // Auto-stop after 3 minutes — prevent accidental long recordings
+      // Auto-stop after 3 minutes
       setTimeout(() => {
-        if (mediaRecorderRef.current?.state === 'recording') {
+        if (audioContextRef.current && !stoppingRef.current) {
           stopRecording();
         }
       }, 180000);
     } catch (err) {
+      cleanup();
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
         setError('Microphone access denied. Please allow microphone access in your browser settings.');
       } else if (err instanceof DOMException && err.name === 'NotFoundError') {
@@ -134,35 +154,45 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       }
       setState('error');
     }
-  }, [stopStream]);
+  }, [cleanup]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current?.state === 'recording') {
-      // Flush any buffered audio data before stopping
-      mediaRecorderRef.current.requestData();
-      mediaRecorderRef.current.stop();
-    }
-    // Don't call stopStream() here — let onstop/processRecording finish first
+    if (stoppingRef.current) return;
+    stoppingRef.current = true;
+
+    // Stop the timer
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
     setDuration(0);
+
+    // Tell the worklet to flush any remaining samples and stop
+    if (workletNodeRef.current) {
+      workletNodeRef.current.port.postMessage({ command: 'stop' });
+    }
+
+    // Small delay to ensure the final flush message arrives
+    setTimeout(() => {
+      processRecording();
+    }, 100);
   }, []);
 
   const processRecording = useCallback(async () => {
-    const chunks = chunksRef.current;
-    if (chunks.length === 0) {
-      setError('No audio recorded.');
+    const allChunks = samplesRef.current;
+    const totalLength = totalSamplesRef.current;
+
+    // Clean up audio resources immediately — we have all the samples we need
+    cleanup();
+
+    if (totalLength === 0) {
+      setError('No audio recorded. Please check your microphone and try again.');
       setState('error');
       return;
     }
 
-    const rawBlob = new Blob(chunks, { type: chunks[0]?.type || 'audio/webm' });
-
-    // Check minimum duration — reject very short recordings
-    const recordingDuration = (Date.now() - startTimeRef.current) / 1000;
-    if (recordingDuration < 1) {
+    // Check minimum duration — at 16kHz, 16000 samples = 1 second
+    if (totalLength < 16000) {
       setError('Recording too short. Please speak for at least a few seconds.');
       setState('error');
       return;
@@ -171,11 +201,19 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setState('uploading');
 
     try {
-      // Convert to 16kHz mono WAV for maximum transcription accuracy
-      // WAV is universally supported and delivers the best word error rate
-      const wavBlob = await convertToWav(rawBlob);
+      // Concatenate all PCM chunks into a single Float32Array
+      const allSamples = new Float32Array(totalLength);
+      let offset = 0;
+      for (const chunk of allChunks) {
+        allSamples.set(chunk, offset);
+        offset += chunk.length;
+      }
 
-      // Validate the converted WAV
+      // Encode as 16-bit PCM WAV — this is pure math, cannot fail
+      const wavBuffer = encodeWav(float32ToInt16(allSamples), 16000, 1);
+      const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+
+      // Validate
       const validation = validateAudioFile(wavBlob);
       if (!validation.valid) {
         setError(validation.error ?? 'Invalid audio file.');
@@ -202,13 +240,13 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
       setState('transcribing');
 
-      // Send for transcription
+      // Transcribe via Speechmatics (primary) / Whisper (fallback)
       const transcribeRes = await api.post<TranscriptionResult>('/api/transcribe', {
         r2Key: urlRes.data.r2Key,
       });
 
       if (!transcribeRes.success || !transcribeRes.data) {
-        throw new Error(transcribeRes.error ?? 'Transcription failed');
+        throw new Error(transcribeRes.error ?? 'Transcription failed. Please try again.');
       }
 
       setTranscription(transcribeRes.data);
@@ -217,19 +255,19 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       console.error('Voice processing failed:', err);
       setError(err instanceof Error ? err.message : 'Processing failed. Please try again.');
       setState('error');
-    } finally {
-      stopStream();
     }
-  }, [stopStream]);
+  }, [cleanup]);
 
   const reset = useCallback(() => {
+    cleanup();
     setState('idle');
     setDuration(0);
     setError(null);
     setTranscription(null);
-    chunksRef.current = [];
-    stopStream();
-  }, [stopStream]);
+    samplesRef.current = [];
+    totalSamplesRef.current = 0;
+    stoppingRef.current = false;
+  }, [cleanup]);
 
   return {
     state,
@@ -242,92 +280,8 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   };
 }
 
-/**
- * Convert any browser-recorded audio blob to 16kHz mono 16-bit PCM WAV.
- *
- * Uses the Web Audio API to decode whatever format the browser recorded
- * (WebM/Opus on Chrome, OGG/Opus on Firefox, MP4/AAC on Safari) and
- * re-encode as uncompressed WAV — the gold standard for speech-to-text.
- *
- * 16kHz mono is the optimal configuration for speech recognition:
- * - Human speech sits within the 0–8kHz range (Nyquist of 16kHz)
- * - Mono eliminates stereo overhead — speech is not spatial
- * - 16-bit depth provides sufficient dynamic range for voice
- */
-async function convertToWav(audioBlob: Blob): Promise<Blob> {
-  const TARGET_SAMPLE_RATE = 16000;
-
-  const audioContext = new AudioContext({ sampleRate: TARGET_SAMPLE_RATE });
-
-  try {
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-
-    // Mix down to mono if stereo
-    const samples = audioBuffer.numberOfChannels > 1
-      ? mixToMono(audioBuffer)
-      : audioBuffer.getChannelData(0);
-
-    // Resample if needed (AudioContext should handle this, but verify)
-    const finalSamples = audioBuffer.sampleRate !== TARGET_SAMPLE_RATE
-      ? resample(samples, audioBuffer.sampleRate, TARGET_SAMPLE_RATE)
-      : samples;
-
-    // Convert float32 samples to 16-bit PCM
-    const pcmData = float32ToInt16(finalSamples);
-
-    // Build WAV file
-    const wavBuffer = encodeWav(pcmData, TARGET_SAMPLE_RATE, 1);
-
-    return new Blob([wavBuffer], { type: 'audio/wav' });
-  } finally {
-    await audioContext.close();
-  }
-}
-
-/**
- * Mix multi-channel audio down to mono by averaging all channels.
- */
-function mixToMono(audioBuffer: AudioBuffer): Float32Array {
-  const length = audioBuffer.length;
-  const mono = new Float32Array(length);
-  const numChannels = audioBuffer.numberOfChannels;
-
-  for (let ch = 0; ch < numChannels; ch++) {
-    const channelData = audioBuffer.getChannelData(ch);
-    for (let i = 0; i < length; i++) {
-      mono[i]! += channelData[i]! / numChannels;
-    }
-  }
-
-  return mono;
-}
-
-/**
- * Simple linear interpolation resampler.
- * Used as a safety net — AudioContext({ sampleRate }) handles most cases.
- */
-function resample(
-  samples: Float32Array,
-  fromRate: number,
-  toRate: number
-): Float32Array {
-  if (fromRate === toRate) return samples;
-
-  const ratio = fromRate / toRate;
-  const newLength = Math.round(samples.length / ratio);
-  const result = new Float32Array(newLength);
-
-  for (let i = 0; i < newLength; i++) {
-    const srcIndex = i * ratio;
-    const srcFloor = Math.floor(srcIndex);
-    const srcCeil = Math.min(srcFloor + 1, samples.length - 1);
-    const fraction = srcIndex - srcFloor;
-    result[i] = samples[srcFloor]! * (1 - fraction) + samples[srcCeil]! * fraction;
-  }
-
-  return result;
-}
+// ─── WAV Encoding Utilities ────────────────────────────────
+// Pure math operations — these cannot fail.
 
 /**
  * Convert Float32Array audio samples to Int16Array (16-bit PCM).
@@ -343,13 +297,17 @@ function float32ToInt16(samples: Float32Array): Int16Array {
 }
 
 /**
- * Encode 16-bit PCM samples into a WAV file buffer.
- * Produces a standards-compliant RIFF/WAVE file.
+ * Encode 16-bit PCM samples into a standards-compliant RIFF/WAVE file.
+ *
+ * WAV is the gold standard for speech-to-text:
+ * - Universally supported by every STT provider
+ * - No compression artifacts — 0% word error rate degradation
+ * - Speechmatics recommends 16kHz sample rate for speech
  */
 function encodeWav(
   samples: Int16Array,
   sampleRate: number,
-  numChannels: number
+  numChannels: number,
 ): ArrayBuffer {
   const bytesPerSample = 2;
   const dataSize = samples.length * bytesPerSample;
@@ -363,8 +321,8 @@ function encodeWav(
 
   // fmt sub-chunk
   writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
+  view.setUint32(16, 16, true);          // Chunk size
+  view.setUint16(20, 1, true);           // PCM format
   view.setUint16(22, numChannels, true);
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
@@ -390,27 +348,4 @@ function writeString(view: DataView, offset: number, str: string): void {
   for (let i = 0; i < str.length; i++) {
     view.setUint8(offset + i, str.charCodeAt(i));
   }
-}
-
-/**
- * Get the best supported audio MIME type for MediaRecorder.
- * The recording format doesn't matter — we convert to WAV before upload.
- * Preference order optimises for recording quality and browser compatibility.
- */
-function getSupportedMimeType(): string {
-  const types = [
-    'audio/ogg;codecs=opus',
-    'audio/ogg',
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/mp4',
-  ];
-
-  for (const type of types) {
-    if (MediaRecorder.isTypeSupported(type)) {
-      return type;
-    }
-  }
-
-  return '';
 }
