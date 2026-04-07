@@ -173,9 +173,41 @@ evidencePackRoutes.post('/evidence-pack', async (c) => {
     sizeBytes: mergedBytes.length,
   });
 
-  // Return download URL (served via the existing evidence-url endpoint)
+  // Return download URL
   return c.json({
     downloadUrl: `/api/evidence-url/${encodeURIComponent(packKey)}`,
     expiresAt: new Date(Date.now() + 86400000).toISOString(),
+  });
+});
+
+// ── GET /api/evidence-url/:key — serve R2 file as download ─
+
+evidencePackRoutes.get('/evidence-url/*', async (c) => {
+  const userId = c.get('userId') as string;
+  const r2Key = decodeURIComponent(c.req.path.replace('/api/evidence-url/', ''));
+
+  // Security: only own files
+  if (!r2Key.startsWith(`users/${userId}/`)) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  // Path traversal check
+  if (r2Key.includes('..') || r2Key.includes('//')) {
+    return c.json({ error: 'Invalid file path' }, 400);
+  }
+
+  const object = await c.env.EVIDENCE_BUCKET.get(r2Key);
+  if (!object) {
+    return c.json({ error: 'File not found' }, 404);
+  }
+
+  const filename = r2Key.split('/').pop() ?? 'evidence-pack.pdf';
+
+  return new Response(object.body, {
+    headers: {
+      'Content-Type': object.httpMetadata?.contentType ?? 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'private, no-cache',
+    },
   });
 });
