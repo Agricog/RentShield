@@ -26,8 +26,8 @@ interface UseVoiceRecorderReturn {
  * - Raw Float32 PCM → WAV encoding is trivial (44-byte header + samples) and cannot fail
  *
  * Flow:
- * 1. Request microphone → AudioContext at 16kHz → AudioWorklet captures raw PCM
- * 2. On stop: encode accumulated Float32 samples as 16-bit PCM WAV
+ * 1. Request microphone → AudioContext at native rate → AudioWorklet captures raw PCM
+ * 2. On stop: resample to 16kHz, encode as 16-bit PCM WAV
  * 3. Upload WAV to R2 (evidence storage)
  * 4. POST /api/transcribe → Speechmatics (primary) or Whisper (fallback)
  * 5. Return transcription with language detection + English translation
@@ -36,6 +36,11 @@ interface UseVoiceRecorderReturn {
  * - Universally supported by Speechmatics, Whisper, and all STT providers
  * - 16kHz captures the full human speech frequency range (0–8kHz Nyquist)
  * - Uncompressed PCM delivers the best word error rate (0% degradation)
+ *
+ * Sample rate strategy:
+ * - Capture at the browser's native rate (typically 44.1kHz or 48kHz)
+ * - Forcing 16kHz via AudioContext({ sampleRate }) produces silence on some hardware
+ * - Resample to 16kHz in software after capture — reliable on every platform
  */
 export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const [state, setState] = useState<RecorderState>('idle');
@@ -87,9 +92,11 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     stoppingRef.current = false;
 
     try {
-      // Create AudioContext at 16kHz — optimal for speech recognition
-      // This tells the browser to resample the mic input to 16kHz for us
-      const audioContext = new AudioContext({ sampleRate: 16000 });
+      // Use the browser's native sample rate for reliable mic capture.
+      // Forcing 16kHz via AudioContext({ sampleRate }) produces silence
+      // on some browser/hardware combinations. We resample to 16kHz
+      // in software after capture — guaranteed to work on every platform.
+      const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
 
       // Load the AudioWorklet processor module
@@ -182,6 +189,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     const allChunks = samplesRef.current;
     const totalLength = totalSamplesRef.current;
 
+    // Capture the native sample rate before cleanup closes the context
+    const nativeSampleRate = audioContextRef.current?.sampleRate ?? 48000;
+
     // Clean up audio resources immediately — we have all the samples we need
     cleanup();
 
@@ -191,8 +201,9 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       return;
     }
 
-    // Check minimum duration — at 16kHz, 16000 samples = 1 second
-    if (totalLength < 16000) {
+    // Check minimum duration based on native sample rate
+    const minSamples = nativeSampleRate; // 1 second of audio
+    if (totalLength < minSamples) {
       setError('Recording too short. Please speak for at least a few seconds.');
       setState('error');
       return;
@@ -209,8 +220,14 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         offset += chunk.length;
       }
 
+      // Resample from native rate to 16kHz (optimal for speech recognition)
+      const targetRate = 16000;
+      const finalSamples = nativeSampleRate !== targetRate
+        ? resample(allSamples, nativeSampleRate, targetRate)
+        : allSamples;
+
       // Encode as 16-bit PCM WAV — this is pure math, cannot fail
-      const wavBuffer = encodeWav(float32ToInt16(allSamples), 16000, 1);
+      const wavBuffer = encodeWav(float32ToInt16(finalSamples), targetRate, 1);
       const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
 
       // Validate
@@ -280,8 +297,35 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   };
 }
 
-// ─── WAV Encoding Utilities ────────────────────────────────
+// ─── Audio Processing Utilities ────────────────────────────
 // Pure math operations — these cannot fail.
+
+/**
+ * Linear interpolation resampler.
+ *
+ * Converts audio from the browser's native sample rate (typically 44.1kHz
+ * or 48kHz) down to 16kHz for speech recognition. Linear interpolation
+ * is sufficient for speech — the frequency content above 8kHz (Nyquist
+ * at 16kHz) is not useful for STT and can be safely discarded.
+ */
+function resample(
+  samples: Float32Array,
+  fromRate: number,
+  toRate: number,
+): Float32Array {
+  if (fromRate === toRate) return samples;
+  const ratio = fromRate / toRate;
+  const newLength = Math.round(samples.length / ratio);
+  const result = new Float32Array(newLength);
+  for (let i = 0; i < newLength; i++) {
+    const srcIndex = i * ratio;
+    const srcFloor = Math.floor(srcIndex);
+    const srcCeil = Math.min(srcFloor + 1, samples.length - 1);
+    const fraction = srcIndex - srcFloor;
+    result[i] = samples[srcFloor]! * (1 - fraction) + samples[srcCeil]! * fraction;
+  }
+  return result;
+}
 
 /**
  * Convert Float32Array audio samples to Int16Array (16-bit PCM).
