@@ -30,6 +30,9 @@ import { Section21AbolishedPage } from './pages/Section21AbolishedPage';
 import { AwaabsLawLandlordPage } from './pages/AwaabsLawLandlordPage';
 import { DecentHomesStandardPage } from './pages/DecentHomesStandardPage';
 import { LandlordWontFixBoilerPage } from './pages/LandlordWontFixBoilerPage';
+import { LandlordWontFixDampPage } from './pages/LandlordWontFixDampPage';
+import { NoHeatingRentalPropertyPage } from './pages/NoHeatingRentalPropertyPage';
+import { LandlordNotRespondingRepairRequestPage } from './pages/LandlordNotRespondingRepairRequestPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
@@ -117,6 +120,9 @@ export function App() {
         <Route path="/awaabs-law-landlord" element={<AwaabsLawLandlordPage />} />
         <Route path="/decent-homes-standard-private-renting" element={<DecentHomesStandardPage />} />
         <Route path="/landlord-wont-fix-boiler" element={<LandlordWontFixBoilerPage />} />
+        <Route path="/landlord-wont-fix-damp" element={<LandlordWontFixDampPage />} />
+        <Route path="/no-heating-rental-property-rights" element={<NoHeatingRentalPropertyPage />} />
+        <Route path="/landlord-not-responding-repair-request" element={<LandlordNotRespondingRepairRequestPage />} />
 
         {/* Protected pages */}
         <Route
