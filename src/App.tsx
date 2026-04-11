@@ -21,6 +21,9 @@ import { TermsPage } from './pages/TermsPage';
 import { LetterToLandlordAboutRepairsPage } from './pages/LetterToLandlordAboutRepairsPage';
 import { LandlordNotFixingRepairsPage } from './pages/LandlordNotFixingRepairsPage';
 import { DampAndMouldLandlordLetterPage } from './pages/DampAndMouldLandlordLetterPage';
+import { LandlordRepairObligationsPage } from './pages/LandlordRepairObligationsPage';
+import { HowToReportLandlordToCouncilPage } from './pages/HowToReportLandlordToCouncilPage';
+import { EnvironmentalHealthComplaintPage } from './pages/EnvironmentalHealthComplaintPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
@@ -99,6 +102,9 @@ export function App() {
         <Route path="/letter-to-landlord-about-repairs" element={<LetterToLandlordAboutRepairsPage />} />
         <Route path="/landlord-not-fixing-repairs" element={<LandlordNotFixingRepairsPage />} />
         <Route path="/damp-and-mould-landlord-letter" element={<DampAndMouldLandlordLetterPage />} />
+        <Route path="/landlord-repair-obligations-uk" element={<LandlordRepairObligationsPage />} />
+        <Route path="/how-to-report-landlord-to-council" element={<HowToReportLandlordToCouncilPage />} />
+        <Route path="/environmental-health-complaint-landlord" element={<EnvironmentalHealthComplaintPage />} />
 
         {/* Protected pages */}
         <Route
