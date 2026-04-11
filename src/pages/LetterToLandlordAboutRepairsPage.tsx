@@ -5,7 +5,6 @@ import {
   FileText,
   ArrowRight,
   Scale,
-  Shield,
   ChevronDown,
   CheckCircle,
   AlertTriangle,
