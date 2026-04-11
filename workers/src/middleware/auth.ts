@@ -81,6 +81,11 @@ export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
     }
 
     c.set('userId', payload.sub);
+
+    // Auto-provision: ensure user exists in database
+    // Webhook is primary, but this catches race conditions and webhook failures
+    await ensureUserExists(payload.sub, c.env);
+
     await next();
   } catch (err) {
     console.error('Auth error:', err instanceof Error ? err.message : err);
@@ -196,6 +201,41 @@ async function importJWK(jwk: JWK): Promise<CryptoKey> {
   importedKeys.set(jwk.kid, key);
 
   return key;
+}
+
+// ── Auto-Provisioning ───────────────────────────────────────
+// Safety net: if the Clerk webhook failed or hasn't fired yet,
+// create the user on first authenticated API call.
+
+const provisionedUsers = new Set<string>();
+
+async function ensureUserExists(userId: string, env: Env): Promise<void> {
+  // In-memory cache — avoid DB check on every request within the same isolate
+  if (provisionedUsers.has(userId)) return;
+
+  try {
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(env.DATABASE_URL);
+
+    const rows = await sql`SELECT id FROM users WHERE id = ${userId}`;
+
+    if (rows.length === 0) {
+      // User authenticated via Clerk but doesn't exist in DB — create them
+      // Email will be empty until webhook fires with full data, but the row
+      // exists so foreign key constraints won't fail
+      await sql`
+        INSERT INTO users (id, email_encrypted)
+        VALUES (${userId}, encrypt_value('pending@repairletter.co.uk', ${env.DB_ENCRYPTION_KEY}))
+        ON CONFLICT (id) DO NOTHING
+      `;
+      console.log('Auto-provisioned user:', userId);
+    }
+
+    provisionedUsers.add(userId);
+  } catch (err) {
+    // Non-fatal — log but don't block the request
+    console.error('Auto-provision check failed:', err);
+  }
 }
 
 // ── Base64URL Helpers ───────────────────────────────────────
