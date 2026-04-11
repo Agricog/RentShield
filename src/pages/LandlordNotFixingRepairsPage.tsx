@@ -7,7 +7,6 @@ import {
   Scale,
   AlertTriangle,
   ChevronDown,
-  Clock,
   Shield,
   CheckCircle,
 } from 'lucide-react';
