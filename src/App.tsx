@@ -18,6 +18,9 @@ import { ReportPage } from './pages/ReportPage';
 import { CaseDetailPage } from './pages/CaseDetailPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
+import { LetterToLandlordAboutRepairsPage } from './pages/LetterToLandlordAboutRepairsPage';
+import { LandlordNotFixingRepairsPage } from './pages/LandlordNotFixingRepairsPage';
+import { DampAndMouldLandlordLetterPage } from './pages/DampAndMouldLandlordLetterPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
@@ -93,6 +96,9 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/letter-to-landlord-about-repairs" element={<LetterToLandlordAboutRepairsPage />} />
+        <Route path="/landlord-not-fixing-repairs" element={<LandlordNotFixingRepairsPage />} />
+        <Route path="/damp-and-mould-landlord-letter" element={<DampAndMouldLandlordLetterPage />} />
 
         {/* Protected pages */}
         <Route
